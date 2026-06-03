@@ -14,3 +14,4 @@ As the development agent, you must follow these rules when working in this repos
 2. **Requirements Tracking**: Always consult the `requirements/` directory as the single source of truth for what needs to be built. Update the requirements documents immediately when the user specifies new features or constraints.
 3. **Regression Testing**: Every feature must be accompanied by regression tests to ensure the compliance logic and document parsing remain stable, especially when the underlying pluggable LLM is swapped or updated.
 4. **Separation of Concerns**: Keep project documentation, agent guidelines (this file), and source code strictly organized in their respective directories.
+5. **Build vs Buy (Adopt) Analysis**: For every new requirement, architectural decision, or feature, you must actively consider and document the tradeoffs between building a custom solution from scratch versus buying/adopting an existing open-source tool or framework.

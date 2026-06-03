@@ -14,7 +14,7 @@ Specific use cases and their detailed requirements are documented in the `use_ca
 - **Partner Consultation**: Provide a workflow or interface to consult partners regarding findings, clarify ambiguities, or request missing documentation.
 
 ## 4. Non-Functional / Architectural Requirements
-- **Pluggable Intelligence Engine**: The underlying Large Language Model (LLM) or intelligence engine MUST be pluggable and easily replaceable. The system architecture should not be tightly coupled to a single AI provider or model.
+- **Pluggable Intelligence Engine**: The underlying Large Language Model (LLM) MUST be pluggable and easily replaceable. The default engine will be a **local Gemma 4 model**. The system architecture should not be tightly coupled to this model, allowing future swaps.
 - **Incremental Development**: System architecture must be modular to support incremental feature additions over time.
 - **Regression Testing**: The system must include a robust regression testing suite to ensure that compliance logic and document parsing remain stable across updates and model swaps.
 - **GDPR Compliance & Data Privacy**: The solution must be fully GDPR compliant. This requires strict control over Personally Identifiable Information (PII) found in documents.
