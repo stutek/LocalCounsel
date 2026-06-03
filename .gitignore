@@ -1,0 +1,16 @@
+# Bazel
+bazel-*
+bazel-bin
+bazel-out
+bazel-testlogs
+bazel-compliance_assistant
+
+# AI Assistant Local Cache
+local_cache/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
