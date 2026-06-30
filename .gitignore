@@ -1,23 +1,24 @@
-# Gradle
-.gradle/
+# Build / work cache (provisioned models, binaries, server PID)
 build/
-!gradle/wrapper/gradle-wrapper.jar
 
-# AI Assistant Local Cache
+# AI Assistant local cache
 local_cache/
 downloads/
 llama_cpp/
 
-# Kotlin / Java
-*.class
-.kotlin/
-
-# IDE
-.idea/
-
 # Python
 __pycache__/
 *.pyc
+.venv/
+venv/
+.nox/
+*.egg-info/
+dist/
+.pytest_cache/
+
+# IDE
+.idea/
+.vscode/
 
 # OS
 .DS_Store

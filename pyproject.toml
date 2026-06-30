@@ -1,0 +1,28 @@
+[project]
+name = "local-counsel"
+version = "0.1.0"
+description = "LocalCounsel — a local-first compliance assistant that reviews documents against regulatory frameworks (Erasmus+, GDPR, EU AI Act) using a pluggable local LLM."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Proprietary" }
+dependencies = [
+    "openai>=1.30",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0"]
+dev = ["nox>=2024.0"]
+
+[project.scripts]
+local-counsel = "local_counsel.assistant:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

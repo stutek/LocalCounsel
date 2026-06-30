@@ -1,4 +1,4 @@
-# Architecture — Compliance Assistant
+# Architecture — LocalCounsel
 
 A local assistant for reviewing documents and checking compliance (e.g. Erasmus+).
 The entire solution runs **locally** (GDPR), is **modular**, and uses a **pluggable LLM**.
@@ -14,14 +14,14 @@ The entire solution runs **locally** (GDPR), is **modular**, and uses a **plugga
 
 ## 1. Component overview
 
-The solution consists of four layers: the automation pipeline (Gradle), the local
-inference backend (llama.cpp + Gemma), the RAG/UI engine (AnythingLLM), and the
-custom compliance business logic (Kotlin / LangChain4j).
+The solution consists of four layers: the automation pipeline (nox), the local
+inference backend (llama.cpp + a pluggable GGUF model), the RAG/UI engine
+(AnythingLLM), and the custom compliance business logic (Python / openai).
 
 ```mermaid
 graph TB
     subgraph Host["🖥️ Local host (sandbox, unprivileged user)"]
-        subgraph Pipeline["⚙️ Gradle pipeline — single source of truth"]
+        subgraph Pipeline["⚙️ nox pipeline — single source of truth"]
             PROV["provision<br/>(idempotent downloads)"]
             BOOT["bootLlm"]
             RUNT["run / test"]
@@ -35,8 +35,8 @@ graph TB
         end
 
         subgraph App["📋 Compliance Assistant (custom logic)"]
-            KT["Kotlin app<br/>Assistant.kt"]
-            L4J["LangChain4j<br/>OpenAiChatModel"]
+            KT["Python app<br/>assistant.py"]
+            L4J["openai client<br/>OpenAI(base_url=…)"]
             KT --- L4J
         end
 
@@ -74,13 +74,13 @@ graph TB
 
 ## 2. Provisioning & startup flow
 
-The demo environment starts with a single command via the Gradle pipeline.
+The demo environment starts with a single command via the nox pipeline.
 Downloads are idempotent — they run identically everywhere and only when an
 artifact does not yet exist.
 
 ```mermaid
 flowchart TD
-    START([gradlew run / startAnythingLlm]) --> P{provision}
+    START([nox -s run / ui]) --> P{provision}
 
     P --> DM["downloadModel<br/>Gemma GGUF"]
     P --> DL["downloadLlamaCpp"]
@@ -97,9 +97,9 @@ flowchart TD
     WAIT -->|"OK"| READY["✅ LLM online<br/>save PID"]
     WAIT -->|"timeout"| FAIL["❌ kill process<br/>+ error"]
 
-    READY --> APP["Kotlin app / test<br/>or AnythingLLM UI"]
+    READY --> APP["Python app / test<br/>or AnythingLLM UI"]
 
-    STOP([gradlew stopLlm]) -.-> KILL["read PID<br/>kill process + descendants<br/>clean up resources"]
+    STOP([nox -s stop_llm]) -.-> KILL["read PID<br/>kill process group + descendants<br/>clean up resources"]
 ```
 
 ## 3. Use case — compliance review workflow (BPMN-style)
@@ -161,7 +161,7 @@ How the components collaborate during a single compliance check.
 sequenceDiagram
     actor Officer as Compliance officer
     participant UI as AnythingLLM (RAG + UI)
-    participant App as Compliance Assistant<br/>(Kotlin / LangChain4j)
+    participant App as Compliance Assistant<br/>(Python / openai)
     participant LLM as llama-server<br/>(Gemma, /v1)
 
     Officer->>UI: Upload project documents
@@ -186,13 +186,13 @@ sequenceDiagram
 | --- | --- | --- |
 | RAG + UI engine | **Adopt** — no custom chat UI | AnythingLLM Desktop |
 | Intelligence engine (LLM) | **Adopt + pluggable** | llama.cpp + Gemma via OpenAI-compatible API |
-| Compliance business logic | **Build** — custom integrations | Kotlin + LangChain4j |
-| Automation / installation | **Build** — single source of truth | Gradle tasks (`provision`, `bootLlm`, `run`, `stopLlm`) |
+| Compliance business logic | **Build** — custom integrations | Python + openai client |
+| Automation / installation | **Build** — single source of truth | nox sessions (`provision`, `boot_llm`, `run`, `stop_llm`) |
 | Privacy / GDPR | Everything runs locally | No data leaves host; sandbox, unprivileged user |
 
 ## 5. LLM pluggability
 
-Both the custom Kotlin app and the RAG engine access the model exclusively through
+Both the custom Python app and the RAG engine access the model exclusively through
 an **OpenAI-compatible HTTP interface** at `127.0.0.1:8080/v1`. The inference
 backend or model can therefore be swapped (another GGUF, another server) without
 changing any business logic — the interface stays the same.
