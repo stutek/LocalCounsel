@@ -1,9 +1,8 @@
 """LocalCounsel automation pipeline (nox).
 
-This replaces the former Gradle build. It provisions the local LLM stack
-(model weights + llama.cpp + AnythingLLM), boots/stops the inference server,
-and runs the app and tests. All ops logic lives here (the Python equivalent of
-the old ``build.gradle.kts``); the application code stays clean under ``src/``.
+It provisions the local LLM stack (model weights + llama.cpp + AnythingLLM),
+boots/stops the inference server, and runs the app and tests. All ops logic lives
+here; the application code stays clean under ``src/``.
 
 Common sessions:
     nox -s provision   # idempotently download + extract everything
@@ -99,8 +98,8 @@ def _download(url: str, dest: Path) -> None:
 def _extract_llama() -> None:
     """Extract the llama.cpp tarball.
 
-    Unlike Gradle's tarTree (which corrupted symlinks and needed a manual fix),
-    Python's tarfile preserves symlinks natively.
+    Python's tarfile preserves symlinks natively, so no manual symlink repair is
+    needed after extraction.
     """
     server = _find_server()
     if server is not None:
