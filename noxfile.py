@@ -251,7 +251,7 @@ def _write_md_report(xml_path: Path, md_path: Path, generated) -> dict:
     lines = [
         "# LocalCounsel — Test Report",
         "",
-        f"- **Generated:** {generated:%Y-%m-%d %H:%M:%S UTC}",
+        f"- **Generated:** {generated.isoformat(timespec='seconds').replace('+00:00', 'Z')}",
         f"- **Result:** {'✅ PASSED' if ok else '❌ FAILED'}",
         f"- **Totals:** {totals['tests']} tests · {passed} passed · "
         f"{totals['failures']} failed · {totals['errors']} errors · {totals['skipped']} skipped",
@@ -315,9 +315,9 @@ def test(session: nox.Session) -> None:
     _boot_llm()
     REPORTS.mkdir(parents=True, exist_ok=True)
 
-    # Each run is retained under a UTC-timestamped filename (never overwritten).
+    # Each run is retained under a UTC ISO-8601 timestamped filename (never overwritten).
     now = datetime.now(timezone.utc)
-    stamp = now.strftime("%Y%m%dT%H%M%SZ")
+    stamp = now.isoformat(timespec="seconds").replace("+00:00", "Z")
     xml_path = REPORTS / f"pytest-junit-{stamp}.xml"
     md_path = REPORTS / f"test-report-{stamp}.md"
 
