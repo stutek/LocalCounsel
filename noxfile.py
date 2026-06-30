@@ -316,8 +316,10 @@ def test(session: nox.Session) -> None:
     REPORTS.mkdir(parents=True, exist_ok=True)
 
     # Each run is retained under a UTC ISO-8601 timestamped filename (never overwritten).
+    # Colons are replaced with '-' so the filename is portable (Windows-safe); the full
+    # ISO timestamp with colons is preserved inside the report's "Generated" line.
     now = datetime.now(timezone.utc)
-    stamp = now.isoformat(timespec="seconds").replace("+00:00", "Z")
+    stamp = now.isoformat(timespec="seconds").replace("+00:00", "Z").replace(":", "-")
     xml_path = REPORTS / f"pytest-junit-{stamp}.xml"
     md_path = REPORTS / f"test-report-{stamp}.md"
 
