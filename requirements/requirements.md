@@ -7,7 +7,7 @@ The assistant is built to **support contract managers (*skrbniki pogodbe*) and f
 
 ## 2. Use Cases
 Specific use cases and their detailed requirements are documented in the `use_cases/` folder:
-- [Erasmus+ Contract Management](file:///home/simon/GoogleDrive/AIassitant/use_cases/erasmus_plus.md)
+- [Erasmus+ Contract Management](use_cases/erasmus_plus.md)
 
 ## 3. Functional Requirements
 - **Document Review**: Ability to ingest, parse, and extract information from various document formats.

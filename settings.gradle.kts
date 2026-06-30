@@ -1,1 +1,1 @@
-rootProject.name = "compliance-assistant"
+rootProject.name = "local-counsel"
