@@ -26,3 +26,7 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+# Capture each test's stdout/stderr/log into the JUnit XML (incl. passing tests)
+# so the Markdown report can embed per-test output.
+junit_logging = "all"
+junit_log_passing_tests = true

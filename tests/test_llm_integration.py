@@ -14,6 +14,9 @@ def test_model_identification() -> None:
         "Hello! Please acknowledge this ping and confirm you are ready to "
         "review compliance documents."
     )
+    print(f"Prompting model: {prompt}")
     response = ask(prompt)
+    print(f"Model response: {response}")
+
     assert response is not None, "Response should not be null"
     assert response.strip(), "Response should not be empty"

@@ -20,12 +20,13 @@ code changes.
 from __future__ import annotations
 
 import os
+import shutil
 import signal
-import socket
 import subprocess
 import tarfile
 import time
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 import nox
@@ -38,7 +39,23 @@ BUILD = ROOT / "build"            # gitignored; reused as a download/work cache
 DOWNLOADS = BUILD / "downloads"
 LLAMA_DIR = BUILD / "llama_cpp"
 PID_FILE = BUILD / "llama.pid"
-REPORTS = BUILD / "reports"
+REPORTS = BUILD / "reports"   # JUnit XML + Markdown test reports
+LOGS = BUILD / "logs"         # llama-server + pytest run logs
+
+
+def _stamp(dt: datetime) -> str:
+    """UTC ISO-8601 timestamp, colon-free so it is filename-portable (Windows-safe)."""
+    return dt.isoformat(timespec="seconds").replace("+00:00", "Z").replace(":", "-")
+
+
+def _link_latest(target: Path, link: Path) -> None:
+    """Point ``link`` at ``target`` (symlink, copy fallback) for 'latest' convenience."""
+    try:
+        if link.exists() or link.is_symlink():
+            link.unlink()
+        link.symlink_to(target.name)  # relative within the same dir
+    except OSError:
+        shutil.copyfile(target, link)
 
 
 def _env(name: str, default: str) -> str:
@@ -136,10 +153,18 @@ def _provision() -> None:
 # --------------------------------------------------------------------------- #
 # Server lifecycle helpers                                                     #
 # --------------------------------------------------------------------------- #
-def _port_open(host: str, port: int) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.settimeout(1)
-        return sock.connect_ex((host, port)) == 0
+def _health_ok(host: str, port: int) -> bool:
+    """True only once llama-server is fully ready.
+
+    The server binds the port *before* the model finishes loading, answering
+    /health with 503 ("Loading model") until ready and 200 afterwards. Polling the
+    TCP port alone races the model load, so we check /health instead.
+    """
+    try:
+        with urllib.request.urlopen(f"http://{host}:{port}/health", timeout=2) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
 
 
 def _pid_alive(pid: int) -> bool:
@@ -150,9 +175,21 @@ def _pid_alive(pid: int) -> bool:
     return True
 
 
-def _boot_llm() -> None:
-    """Start llama-server (if not already up) and wait for it to bind the port."""
-    if _port_open(HOST, PORT):
+def _tail(path: Path, n: int = 25) -> str:
+    try:
+        return "\n".join(path.read_text(errors="replace").splitlines()[-n:])
+    except OSError:
+        return "(no log)"
+
+
+def _boot_llm(log_stamp: str | None = None) -> None:
+    """Start llama-server (if not already up) and wait for it to bind the port.
+
+    The server is detached (own process group) and outlives this nox process, so
+    its stdout/stderr are redirected to a persistent, timestamped log file under
+    build/logs/ — tail it live with ``tail -f build/logs/llama-latest.log``.
+    """
+    if _health_ok(HOST, PORT):
         print(f"✓ LLM already serving on {HOST}:{PORT}")
         return
 
@@ -162,29 +199,40 @@ def _boot_llm() -> None:
         raise SystemExit("llama-server binary not found after provisioning!")
     server.chmod(0o755)
 
-    print("Starting llama-server ...")
+    LOGS.mkdir(parents=True, exist_ok=True)
+    log_path = LOGS / f"llama-{log_stamp or _stamp(datetime.now(timezone.utc))}.log"
+    logf = open(log_path, "w")  # noqa: SIM115 — kept open for the detached server's lifetime
+    _link_latest(log_path, LOGS / "llama-latest.log")
+
+    print(f"Starting llama-server ... (logging to {log_path})")
     env = {**os.environ, "LD_LIBRARY_PATH": str(server.parent)}
     proc = subprocess.Popen(
         [str(server), "-m", str(MODEL_FILE), "--host", HOST, "--port", str(PORT)],
         cwd=str(server.parent),
         env=env,
+        stdout=logf,
+        stderr=subprocess.STDOUT,
         start_new_session=True,  # own process group → clean group-kill in stop_llm
     )
     PID_FILE.parent.mkdir(parents=True, exist_ok=True)
     PID_FILE.write_text(str(proc.pid))
 
-    print(f"Waiting for LLM server to bind to {HOST}:{PORT} ", end="", flush=True)
-    for _ in range(60):
-        if _port_open(HOST, PORT):
+    print(f"Waiting for LLM server on {HOST}:{PORT} to load the model ", end="", flush=True)
+    for _ in range(180):  # model load can take a while for larger GGUFs
+        if _health_ok(HOST, PORT):
             print("\n✅ LLM server is online!")
             return
         if proc.poll() is not None:
-            raise SystemExit(f"llama-server exited early (code {proc.returncode}).")
+            raise SystemExit(
+                f"llama-server exited early (code {proc.returncode}). Last log lines:\n{_tail(log_path)}"
+            )
         print(".", end="", flush=True)
         time.sleep(1)
 
     proc.terminate()
-    raise SystemExit(f"\nLLM server failed to start on {HOST}:{PORT}.")
+    raise SystemExit(
+        f"\nLLM server failed to start on {HOST}:{PORT}. Last log lines:\n{_tail(log_path)}"
+    )
 
 
 def _stop_llm() -> None:
@@ -243,7 +291,16 @@ def _write_md_report(xml_path: Path, md_path: Path, generated) -> dict:
             )
             name = f"{case.get('classname', '')}::{case.get('name', '')}".strip(":")
             detail = ((node.get("message") or node.text or "").strip()) if node is not None else ""
-            cases.append({"name": name, "outcome": outcome, "time": float(case.get("time", 0) or 0), "detail": detail})
+            sysout = (case.findtext("system-out") or "").strip()
+            syserr = (case.findtext("system-err") or "").strip()
+            cases.append({
+                "name": name,
+                "outcome": outcome,
+                "time": float(case.get("time", 0) or 0),
+                "detail": detail,
+                "sysout": sysout,
+                "syserr": syserr,
+            })
 
     passed = totals["tests"] - totals["failures"] - totals["errors"] - totals["skipped"]
     ok = totals["failures"] == 0 and totals["errors"] == 0
@@ -267,6 +324,20 @@ def _write_md_report(xml_path: Path, md_path: Path, generated) -> dict:
         lines += ["", "## Failures", ""]
         for c in failing:
             lines += [f"### `{c['name']}`", "", "```", c["detail"] or "(no detail)", "```", ""]
+
+    # Per-test captured output (requires junit_logging=all in pyproject). Collapsed
+    # so the report stays scannable; expand to observe stdout/stderr of any test.
+    if any(c["sysout"] or c["syserr"] for c in cases):
+        lines += ["", "## Captured output", ""]
+        for c in cases:
+            if not (c["sysout"] or c["syserr"]):
+                continue
+            lines += [f"<details><summary>{icon[c['outcome']]} <code>{c['name']}</code></summary>", ""]
+            if c["sysout"]:
+                lines += ["**stdout**", "", "```text", c["sysout"], "```", ""]
+            if c["syserr"]:
+                lines += ["**stderr**", "", "```text", c["syserr"], "```", ""]
+            lines += ["</details>", ""]
 
     md_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return {**totals, "passed": passed, "ok": ok}
@@ -305,33 +376,49 @@ def run(session: nox.Session) -> None:
 def test(session: nox.Session) -> None:
     """Boot the LLM (if needed) and run the integration tests.
 
-    Emits a JUnit XML report and a human-readable Markdown summary under
-    build/reports/.
+    Produces, all under build/ (each named with a colon-free UTC ISO-8601 stamp,
+    so runs are retained, with -latest pointers):
+      - reports/test-report-<stamp>.md   — Markdown summary + per-test output
+      - reports/pytest-junit-<stamp>.xml — JUnit XML
+      - logs/pytest-<stamp>.log          — full pytest console transcript
+      - logs/llama-<stamp>.log           — llama-server log (see _boot_llm)
     """
-    import shutil
-    from datetime import datetime, timezone
-
     session.install("-e", ".[test]")
-    _boot_llm()
     REPORTS.mkdir(parents=True, exist_ok=True)
+    LOGS.mkdir(parents=True, exist_ok=True)
 
-    # Each run is retained under a UTC ISO-8601 timestamped filename (never overwritten).
-    # Colons are replaced with '-' so the filename is portable (Windows-safe); the full
-    # ISO timestamp with colons is preserved inside the report's "Generated" line.
     now = datetime.now(timezone.utc)
-    stamp = now.isoformat(timespec="seconds").replace("+00:00", "Z").replace(":", "-")
+    stamp = _stamp(now)
     xml_path = REPORTS / f"pytest-junit-{stamp}.xml"
     md_path = REPORTS / f"test-report-{stamp}.md"
+    pytest_log = LOGS / f"pytest-{stamp}.log"
 
-    # success_codes=[0, 1]: keep going when tests fail so the report is still written.
-    session.run("pytest", f"--junitxml={xml_path}", success_codes=[0, 1])
+    _boot_llm(stamp)
+
+    # Stream pytest live to the terminal AND persist a full transcript via tee.
+    # pipefail propagates pytest's exit code through the pipe; [0, 1] lets a test
+    # failure through so the report is still written (Linux x64 target — bash assumed).
+    session.run(
+        "bash", "-c",
+        f"set -o pipefail; pytest --junitxml='{xml_path}' 2>&1 | tee '{pytest_log}'",
+        success_codes=[0, 1],
+        external=True,
+    )
     totals = _write_md_report(xml_path, md_path, now)
 
     # Convenience pointers to the most recent run.
-    shutil.copyfile(md_path, REPORTS / "test-report-latest.md")
-    shutil.copyfile(xml_path, REPORTS / "pytest-junit-latest.xml")
+    _link_latest(md_path, REPORTS / "test-report-latest.md")
+    _link_latest(xml_path, REPORTS / "pytest-junit-latest.xml")
+    _link_latest(pytest_log, LOGS / "pytest-latest.log")
 
-    print(f"\nReport written ({stamp}):\n  XML: {xml_path}\n  MD:  {md_path}\n  latest: {REPORTS / 'test-report-latest.md'}")
+    print(
+        f"\nArtifacts ({stamp}):"
+        f"\n  report : {md_path}"
+        f"\n  junit  : {xml_path}"
+        f"\n  pytest log : {pytest_log}"
+        f"\n  llama log  : {LOGS / f'llama-{stamp}.log'}"
+        f"\n  latest report: {REPORTS / 'test-report-latest.md'}"
+    )
     if not totals["ok"]:
         session.error(f"Tests failed — see {md_path}")
 
