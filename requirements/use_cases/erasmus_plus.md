@@ -3,6 +3,17 @@
 ## 1. Scope
 Contract and execution management specifically for Erasmus+ projects.
 
+## 1a. Supported Users (Personas)
+The assistant supports two National Agency roles across the processes below:
+- **Contract managers** (*skrbniki pogodbe*) — operational/desk review: admissibility,
+  eligibility and selection checks, monitoring, report completeness and data validation.
+- **Financial controllers** (*finančni nadzorniki*) — financial verification: eligible
+  costs, budget-category compliance, supporting documents, recovery of undue amounts.
+
+The supported processes are modelled as BPMN-style diagrams in
+[../../docs/erasmus-processes.md](../../docs/erasmus-processes.md):
+**application evaluation**, **project monitoring**, and **final report evaluation**.
+
 ## 2. Goals
 - Review project documents (e.g., periodic reports, financial statements).
 - Ensure strict compliance with Erasmus+ guidelines and reporting requirements.

@@ -10,6 +10,10 @@ llama_cpp/
 
 # Kotlin / Java
 *.class
+.kotlin/
+
+# IDE
+.idea/
 
 # Python
 __pycache__/
