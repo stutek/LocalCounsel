@@ -1,4 +1,14 @@
+---
+type: Project Overview
+title: LocalCounsel
+description: Local-first compliance assistant that reviews documents against Erasmus+, GDPR, and EU AI Act using a pluggable local LLM.
+tags: [overview, readme, compliance, local-first]
+timestamp: 2026-06-30T23:39:47+02:00
+---
+
 # LocalCounsel
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A **local-first compliance assistant** that reviews documents and reports against
 regulatory frameworks (Erasmus+, GDPR, EU AI Act), generates evaluation reports,
@@ -34,9 +44,12 @@ nox -s provision   # idempotently download model + llama.cpp + AnythingLLM
 nox -s boot_llm    # start llama-server and wait until it is ready
 nox -s run         # boot the LLM (if needed) and run the assistant
 nox -s test        # boot the LLM (if needed) and run the integration tests
+nox -s okf         # verify the docs are a conformant OKF v0.1 bundle
 nox -s stop_llm    # stop the server and its child processes
 nox -s ui          # launch the AnythingLLM desktop UI
 ```
+
+Running bare `nox` runs the default sessions — `okf` (fast, no LLM) then `test`.
 
 The first `provision`/`boot_llm` downloads several GB (model weights + binaries)
 into `build/` (gitignored). Subsequent runs reuse the cache.
@@ -67,3 +80,33 @@ gateway and final decision, keeping the system out of the EU AI Act high-risk
 category. Running fully locally keeps processing GDPR-friendly. Final
 classification for any concrete deployment requires legal/DPO review — see
 [docs/final-report-llm-eu-ai-act.md](docs/final-report-llm-eu-ai-act.md).
+
+## Knowledge bundle (OKF)
+
+This repository doubles as an [Open Knowledge Format (OKF) v0.1](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md)
+bundle, so AI agents (and humans) can consume the project's curated knowledge
+without any custom integration — the file system *is* the API.
+
+- Every non-reserved Markdown file is an OKF **concept**: it carries YAML
+  frontmatter with a required `type` field, plus `title`, `description`, `tags`,
+  and a `timestamp`. A concept's **ID** is its path with the `.md` removed
+  (e.g. `docs/ARCHITECTURE`).
+- [`index.md`](index.md) is the bundle listing — the entry point mapping every
+  Concept ID to its type and description.
+
+Keeping this bundle conformant is a project requirement — see the
+**OKF-Compliant Knowledge Bundle** NFR in
+[requirements/requirements.md](requirements/requirements.md#4-non-functional--architectural-requirements).
+When you add or rename a Markdown doc, give it frontmatter with a `type` and add
+it to [`index.md`](index.md), then run `nox -s okf` to check conformance (it also
+runs by default as part of bare `nox`, so CI catches regressions).
+
+## License
+
+LocalCounsel is released under the [MIT License](LICENSE) — an
+[OSI-approved](https://opensource.org/licenses/MIT) license that conforms to the
+[Open Definition](https://opendefinition.org/). You are free to use, modify, and
+redistribute both the source code and the documentation, provided the copyright
+notice and permission notice are retained.
+
+Contributions are accepted under the same license.

@@ -1,3 +1,11 @@
+---
+type: Use Case
+title: "Use Case: Erasmus+ Project Management"
+description: Contract and execution management use case for Erasmus+ projects, including supported personas and the modelled processes.
+tags: [use-case, erasmus-plus, requirements]
+timestamp: 2026-06-30T23:23:37+02:00
+---
+
 # Use Case: Erasmus+ Project Management
 
 ## 1. Scope

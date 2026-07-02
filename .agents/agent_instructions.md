@@ -1,3 +1,11 @@
+---
+type: Agent Instructions
+title: Developer Agent Instructions
+description: Role definition, project context, and development guidelines for the developer AI assistant working in this repository.
+tags: [agent, instructions, development]
+timestamp: 2026-06-03T11:54:51+02:00
+---
+
 # Developer Agent Instructions
 
 ## Role Definition

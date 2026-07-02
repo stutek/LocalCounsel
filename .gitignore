@@ -22,3 +22,9 @@ dist/
 
 # OS
 .DS_Store
+
+# Local Environment Secrets
+.env
+.env.local
+.env.*
+

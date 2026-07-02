@@ -1,3 +1,11 @@
+---
+type: Requirements
+title: Compliance Assistant Requirements
+description: Functional and non-functional requirements for the LocalCounsel compliance assistant.
+tags: [requirements, compliance]
+timestamp: 2026-06-30T23:28:34+02:00
+---
+
 # Compliance Assistant Requirements
 
 ## 1. Project Overview
@@ -29,3 +37,4 @@ Specific use cases and their detailed requirements are documented in the `use_ca
 - **EU AI Act Compliance** *(baseline NFR)*: The solution must comply with the EU AI Act. The LLM is used strictly as **decision-support** with **human-in-the-loop** on every gateway and final decision, keeping the system out of the high-risk category. AI-generated content (drafts, feedback letters) must be marked as AI-generated and carry human editorial responsibility (Art. 50). The per-stage risk mapping and constraints are documented in [../docs/final-report-llm-eu-ai-act.md](../docs/final-report-llm-eu-ai-act.md). Final classification for any concrete deployment requires legal/DPO review.
 - **Security & Sandboxing**: The solution must be highly secure. The application must run under a dedicated, unprivileged user account to enforce strict filesystem access controls. The RAG engine and the LLM inference backend run completely sandboxed.
 - **Rapid Demo Provisioning**: A demo environment must be able to start up in a few minutes using a single command. The designated automated pipeline toolchain handles the creation of the sandbox, idempotent downloading of the RAG engine and local LLM binaries, and initialization without manual intervention.
+- **OKF-Compliant Knowledge Bundle**: The repository's documentation must remain a conformant [Open Knowledge Format (OKF) v0.1](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) bundle so that AI agents can consume the project's curated knowledge without custom integration. Every non-reserved Markdown file MUST carry YAML frontmatter with a non-empty `type` field (plus, where applicable, `title`, `description`, `tags`, and a `timestamp`), and a root [`index.md`](../index.md) MUST list the concepts. New or renamed Markdown docs must preserve conformance.

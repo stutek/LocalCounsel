@@ -1,3 +1,11 @@
+---
+type: Architecture
+title: Architecture — LocalCounsel
+description: System design covering components, provisioning/startup flow, the compliance review workflow, and LLM pluggability.
+tags: [architecture, design, llm, local-first]
+timestamp: 2026-06-30T23:39:47+02:00
+---
+
 # Architecture — LocalCounsel
 
 A local assistant for reviewing documents and checking compliance (e.g. Erasmus+).

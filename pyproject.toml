@@ -4,7 +4,15 @@ version = "0.1.0"
 description = "LocalCounsel — a local-first compliance assistant that reviews documents against regulatory frameworks (Erasmus+, GDPR, EU AI Act) using a pluggable local LLM."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "Proprietary" }
+license = { text = "MIT" }
+authors = [
+    { name = "Simon Tutek", email = "simon.tutek@gmail.com" },
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Operating System :: POSIX :: Linux",
+]
 dependencies = [
     "openai>=1.30",
 ]

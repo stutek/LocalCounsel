@@ -1,3 +1,11 @@
+---
+type: Process Models
+title: Erasmus+ processes — BPMN-style diagrams
+description: BPMN-style process models for Erasmus+ application evaluation, project monitoring, and final report evaluation.
+tags: [erasmus-plus, bpmn, processes]
+timestamp: 2026-06-30T23:23:37+02:00
+---
+
 # Erasmus+ processes — BPMN-style diagrams
 
 Process models for three Erasmus+ scenarios the Compliance Assistant supports:

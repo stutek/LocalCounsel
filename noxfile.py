@@ -9,6 +9,7 @@ Common sessions:
     nox -s boot_llm    # start llama-server and wait for it to be ready
     nox -s run         # boot the LLM (if needed) and run the assistant
     nox -s test        # boot the LLM (if needed) and run pytest
+    nox -s okf         # verify the docs are a conformant OKF v0.1 bundle
     nox -s stop_llm    # stop the server and its child processes
     nox -s ui          # launch the AnythingLLM desktop UI
 
@@ -83,8 +84,14 @@ ANYTHINGLLM_APP = DOWNLOADS / "AnythingLLMDesktop.AppImage"
 HOST = _env("LC_LLM_HOST", "127.0.0.1")
 PORT = int(_env("LC_LLM_PORT", "8080"))
 
-nox.options.sessions = ["test"]
+nox.options.sessions = ["okf", "test"]
 nox.options.reuse_existing_virtualenvs = True
+
+# OKF (Open Knowledge Format) knowledge-bundle conformance — see the
+# "OKF-Compliant Knowledge Bundle" NFR in requirements/requirements.md.
+OKF_RESERVED = {"index.md", "log.md"}          # bundle files, not concepts
+OKF_INDEX = ROOT / "index.md"
+OKF_SKIP_DIRS = {".git", ".nox", "build", ".pytest_cache", "__pycache__", "node_modules"}
 
 
 # --------------------------------------------------------------------------- #
@@ -344,8 +351,75 @@ def _write_md_report(xml_path: Path, md_path: Path, generated) -> dict:
 
 
 # --------------------------------------------------------------------------- #
+# OKF conformance                                                              #
+# --------------------------------------------------------------------------- #
+def _okf_concept_files() -> list[Path]:
+    """Every repository Markdown file that OKF treats as a *concept*.
+
+    Skips generated/vendored trees and the reserved bundle files (index.md,
+    log.md), which are not concepts.
+    """
+    out = []
+    for path in sorted(ROOT.rglob("*.md")):
+        rel_parts = path.relative_to(ROOT).parts[:-1]
+        if any(p in OKF_SKIP_DIRS or p.endswith(".egg-info") for p in rel_parts):
+            continue
+        if path.name in OKF_RESERVED:
+            continue
+        out.append(path)
+    return out
+
+
+def _check_okf() -> list[str]:
+    """Return a list of OKF v0.1 conformance problems (empty == conformant).
+
+    Pure stdlib: a concept just needs a top-of-file YAML frontmatter block with a
+    non-empty ``type``. We also enforce this project's NFR that a root index.md
+    exists and lists every concept.
+    """
+    import re
+
+    problems: list[str] = []
+    index_text = OKF_INDEX.read_text(encoding="utf-8") if OKF_INDEX.exists() else None
+    if index_text is None:
+        problems.append("index.md: missing bundle listing at the repository root")
+
+    for path in _okf_concept_files():
+        rel = path.relative_to(ROOT)
+        concept_id = rel.as_posix()[:-3]  # path minus ".md"
+        text = path.read_text(encoding="utf-8", errors="replace")
+        m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
+        if not m:
+            problems.append(f"{rel}: missing YAML frontmatter block")
+            continue
+        tm = re.search(r"^type:[ \t]*(\S.*?)\s*$", m.group(1), re.M)
+        if not tm:
+            problems.append(f"{rel}: frontmatter has no non-empty 'type' field")
+        if index_text is not None and concept_id not in index_text:
+            problems.append(f"{rel}: concept '{concept_id}' is not listed in index.md")
+    return problems
+
+
+# --------------------------------------------------------------------------- #
 # Sessions                                                                     #
 # --------------------------------------------------------------------------- #
+@nox.session(python=False)
+def okf(session: nox.Session) -> None:
+    """Verify the repository docs are a conformant OKF v0.1 knowledge bundle.
+
+    Fails if any non-reserved Markdown file lacks frontmatter with a ``type``, or
+    if index.md is missing or does not list a concept. See the "OKF-Compliant
+    Knowledge Bundle" NFR in requirements/requirements.md.
+    """
+    concepts = _okf_concept_files()
+    problems = _check_okf()
+    if problems:
+        for p in problems:
+            session.warn(f"✗ {p}")
+        session.error(f"OKF conformance failed: {len(problems)} problem(s) across {len(concepts)} concept file(s).")
+    session.log(f"✅ OKF v0.1 conformant — {len(concepts)} concept files, all with a 'type' and listed in index.md.")
+
+
 @nox.session(python=False)
 def provision(session: nox.Session) -> None:
     """Idempotently download + extract all models and binaries."""

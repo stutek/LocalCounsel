@@ -1,3 +1,11 @@
+---
+type: Compliance Analysis
+title: Final report evaluation — LLM-assist potential & EU AI Act constraints
+description: Maps final-report-evaluation stages to LLM-assist potential and the EU AI Act constraints and safeguards that apply.
+tags: [eu-ai-act, compliance, llm, erasmus-plus]
+timestamp: 2026-06-30T23:23:37+02:00
+---
+
 # Final report evaluation — LLM-assist potential & EU AI Act constraints
 
 Maps each stage of the [final report evaluation process](erasmus-processes.md#3-final-report-evaluation)
