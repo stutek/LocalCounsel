@@ -63,23 +63,45 @@ def _env(name: str, default: str) -> str:
     return os.environ.get(name, default)
 
 
+import platform
+
+def _get_llama_defaults() -> tuple[str, str]:
+    sys_name = platform.system().lower()
+    mach_name = platform.machine().lower()
+    if sys_name == "linux":
+        if "x86_64" in mach_name or "amd64" in mach_name:
+            return "https://github.com/ggml-org/llama.cpp/releases/download/b9487/llama-b9487-bin-ubuntu-x64.tar.gz", "llama.tar.gz"
+        return "https://github.com/ggml-org/llama.cpp/releases/download/b9487/llama-b9487-bin-ubuntu-arm64.tar.gz", "llama.tar.gz"
+    elif sys_name == "darwin":
+        if "arm" in mach_name:
+            return "https://github.com/ggml-org/llama.cpp/releases/download/b9487/llama-b9487-bin-macos-arm64.tar.gz", "llama.tar.gz"
+        return "https://github.com/ggml-org/llama.cpp/releases/download/b9487/llama-b9487-bin-macos-x64.tar.gz", "llama.tar.gz"
+    elif sys_name == "windows":
+        return "https://github.com/ggml-org/llama.cpp/releases/download/b9487/llama-b9487-bin-win-llvm-x64.zip", "llama.zip"
+    return "https://github.com/ggml-org/llama.cpp/releases/download/b9487/llama-b9487-bin-ubuntu-x64.tar.gz", "llama.tar.gz"
+
+def _get_anythingllm_defaults() -> tuple[str, str]:
+    sys_name = platform.system().lower()
+    if sys_name == "darwin":
+        return "https://cdn.anythingllm.com/latest/AnythingLLMDesktop.dmg", "AnythingLLMDesktop.dmg"
+    elif sys_name == "windows":
+        return "https://cdn.anythingllm.com/latest/AnythingLLMDesktop.exe", "AnythingLLMDesktop.exe"
+    return "https://cdn.anythingllm.com/latest/AnythingLLMDesktop.AppImage", "AnythingLLMDesktop.AppImage"
+
+_llama_url_default, _llama_name_default = _get_llama_defaults()
+_allm_url_default, _allm_name_default = _get_anythingllm_defaults()
+
 MODEL_URL = _env(
     "LC_MODEL_URL",
     "https://huggingface.co/bartowski/gemma-2-2b-it-GGUF/resolve/main/gemma-2-2b-it-Q4_K_M.gguf",
 )
 MODEL_FILE = DOWNLOADS / _env("LC_MODEL_FILE", MODEL_URL.rsplit("/", 1)[-1])
 
-LLAMA_URL = _env(
-    "LC_LLAMA_URL",
-    "https://github.com/ggml-org/llama.cpp/releases/download/b9487/llama-b9487-bin-ubuntu-x64.tar.gz",
-)
-LLAMA_TAR = DOWNLOADS / "llama.tar.gz"
+LLAMA_URL = _env("LC_LLAMA_URL", _llama_url_default)
+LLAMA_TAR = DOWNLOADS / _env("LC_LLAMA_FILE", _llama_name_default)
 
-ANYTHINGLLM_URL = _env(
-    "LC_ANYTHINGLLM_URL",
-    "https://cdn.anythingllm.com/latest/AnythingLLMDesktop.AppImage",
-)
-ANYTHINGLLM_APP = DOWNLOADS / "AnythingLLMDesktop.AppImage"
+ANYTHINGLLM_URL = _env("LC_ANYTHINGLLM_URL", _allm_url_default)
+ANYTHINGLLM_APP = DOWNLOADS / _env("LC_ANYTHINGLLM_FILE", _allm_name_default)
 
 HOST = _env("LC_LLM_HOST", "127.0.0.1")
 PORT = int(_env("LC_LLM_PORT", "8080"))
@@ -121,10 +143,9 @@ def _download(url: str, dest: Path) -> None:
 
 
 def _extract_llama() -> None:
-    """Extract the llama.cpp tarball.
+    """Extract the llama.cpp archive (tarball or zip).
 
-    Python's tarfile preserves symlinks natively, so no manual symlink repair is
-    needed after extraction.
+    Python's tarfile/zipfile extract archives natively, handling symlinks and platform specific files.
     """
     server = _find_server()
     if server is not None:
@@ -132,17 +153,23 @@ def _extract_llama() -> None:
         return
     LLAMA_DIR.mkdir(parents=True, exist_ok=True)
     print("⇲ extracting llama.cpp ...")
-    with tarfile.open(LLAMA_TAR, "r:gz") as tar:
-        try:
-            tar.extractall(LLAMA_DIR, filter="data")  # py3.12+ safe filter
-        except TypeError:
-            tar.extractall(LLAMA_DIR)
+    if LLAMA_TAR.suffix == ".zip" or LLAMA_TAR.name.endswith(".zip"):
+        import zipfile
+        with zipfile.ZipFile(LLAMA_TAR, "r") as zip_ref:
+            zip_ref.extractall(LLAMA_DIR)
+    else:
+        with tarfile.open(LLAMA_TAR, "r:gz") as tar:
+            try:
+                tar.extractall(LLAMA_DIR, filter="data")  # py3.12+ safe filter
+            except TypeError:
+                tar.extractall(LLAMA_DIR)
 
 
 def _find_server() -> Path | None:
     if not LLAMA_DIR.exists():
         return None
-    for name in ("llama-server", "server"):
+    names = ("llama-server", "server", "llama-server.exe", "server.exe")
+    for name in names:
         for path in LLAMA_DIR.rglob(name):
             if path.is_file():
                 return path
@@ -154,7 +181,11 @@ def _provision() -> None:
     _download(LLAMA_URL, LLAMA_TAR)
     _extract_llama()
     _download(ANYTHINGLLM_URL, ANYTHINGLLM_APP)
-    ANYTHINGLLM_APP.chmod(0o755)
+    if platform.system().lower() != "windows":
+        try:
+            ANYTHINGLLM_APP.chmod(0o755)
+        except OSError:
+            pass
 
 
 # --------------------------------------------------------------------------- #
@@ -204,7 +235,11 @@ def _boot_llm(log_stamp: str | None = None) -> None:
     server = _find_server()
     if server is None:
         raise SystemExit("llama-server binary not found after provisioning!")
-    server.chmod(0o755)
+    if platform.system().lower() != "windows":
+        try:
+            server.chmod(0o755)
+        except OSError:
+            pass
 
     LOGS.mkdir(parents=True, exist_ok=True)
     log_path = LOGS / f"llama-{log_stamp or _stamp(datetime.now(timezone.utc))}.log"
@@ -212,14 +247,24 @@ def _boot_llm(log_stamp: str | None = None) -> None:
     _link_latest(log_path, LOGS / "llama-latest.log")
 
     print(f"Starting llama-server ... (logging to {log_path})")
-    env = {**os.environ, "LD_LIBRARY_PATH": str(server.parent)}
+    env = {**os.environ}
+    if platform.system().lower() != "windows":
+        env["LD_LIBRARY_PATH"] = str(server.parent)
+        
+    kwargs = {}
+    if platform.system().lower() != "windows":
+        kwargs["start_new_session"] = True
+    else:
+        # DETACHED_PROCESS = 0x00000008
+        kwargs["creationflags"] = 0x00000008
+
     proc = subprocess.Popen(
         [str(server), "-m", str(MODEL_FILE), "--host", HOST, "--port", str(PORT)],
         cwd=str(server.parent),
         env=env,
         stdout=logf,
         stderr=subprocess.STDOUT,
-        start_new_session=True,  # own process group → clean group-kill in stop_llm
+        **kwargs,
     )
     PID_FILE.parent.mkdir(parents=True, exist_ok=True)
     PID_FILE.write_text(str(proc.pid))
@@ -248,16 +293,26 @@ def _stop_llm() -> None:
         return
     pid = int(PID_FILE.read_text().strip())
     try:
-        pgid = os.getpgid(pid)
-        print(f"🛑 Stopping LLM server (PID {pid}) and child processes ...")
-        os.killpg(pgid, signal.SIGTERM)
+        is_win = platform.system().lower() == "windows"
+        if not is_win:
+            pgid = os.getpgid(pid)
+            print(f"🛑 Stopping LLM server (PID {pid}) and child processes ...")
+            os.killpg(pgid, signal.SIGTERM)
+        else:
+            print(f"🛑 Stopping LLM server (PID {pid}) ...")
+            os.kill(pid, signal.SIGTERM)
+            
         for _ in range(10):
             if not _pid_alive(pid):
                 break
             time.sleep(0.5)
+            
         if _pid_alive(pid):
-            os.killpg(pgid, signal.SIGKILL)
-    except ProcessLookupError:
+            if not is_win:
+                os.killpg(pgid, signal.SIGKILL)
+            else:
+                os.kill(pid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
         print(f"LLM server (PID {pid}) is no longer running.")
     finally:
         PID_FILE.unlink(missing_ok=True)
@@ -502,4 +557,43 @@ def ui(session: nox.Session) -> None:
     """Launch the AnythingLLM desktop UI (boots the LLM first)."""
     _boot_llm()
     print("Booting AnythingLLM UI ...")
-    subprocess.run([str(ANYTHINGLLM_APP), "--appimage-extract-and-run"], check=False)
+    system = platform.system().lower()
+    if system == "darwin":
+        subprocess.run(["open", str(ANYTHINGLLM_APP)], check=False)
+    elif system == "windows":
+        subprocess.run([str(ANYTHINGLLM_APP)], check=False)
+    else:
+        subprocess.run([str(ANYTHINGLLM_APP), "--appimage-extract-and-run"], check=False)
+
+
+@nox.session(python=False)
+def push_github(session: nox.Session) -> None:
+    """Create a private GitHub repository and push the code there."""
+    import shutil
+    import subprocess
+    
+    # 1. Check if gh CLI is installed
+    if shutil.which("gh") is None:
+        session.error("GitHub CLI (gh) is not installed. Please install it and log in using 'gh auth login'.")
+        
+    # 2. Check if gh CLI is logged in
+    res = subprocess.run(["gh", "auth", "status"], capture_output=True, text=True)
+    if res.returncode != 0:
+        session.error("You are not logged into GitHub CLI. Please run 'gh auth login' first on your terminal.")
+        
+    # 3. Get the current git branch name
+    res_branch = subprocess.run(["git", "branch", "--show-current"], capture_output=True, text=True)
+    branch = res_branch.stdout.strip() or "main"
+        
+    # 4. Check if origin remote exists
+    res_remote = subprocess.run(["git", "remote", "get-url", "origin"], capture_output=True, text=True)
+    if res_remote.returncode == 0:
+        session.log(f"Remote origin already exists: {res_remote.stdout.strip()}")
+        session.run("git", "push", "-u", "origin", branch, external=True)
+        return
+        
+    # 5. Create repository and push
+    repo_name = ROOT.name
+    session.log(f"Creating private GitHub repository '{repo_name}'...")
+    session.run("gh", "repo", "create", repo_name, "--private", "--source=.", "--push", external=True)
+
