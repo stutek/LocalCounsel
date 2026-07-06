@@ -597,3 +597,45 @@ def push_github(session: nox.Session) -> None:
     session.log(f"Creating private GitHub repository '{repo_name}'...")
     session.run("gh", "repo", "create", repo_name, "--private", "--source=.", "--push", external=True)
 
+
+def _safe_remove_dir(session: nox.Session, path: Path) -> None:
+    """Wipes a directory only if it passes strict path containment checks."""
+    import shutil
+    
+    # 1. Resolve paths to absolute paths to prevent symlink tricks
+    abs_path = path.resolve()
+    abs_root = ROOT.resolve()
+    abs_build = BUILD.resolve()
+    
+    # 2. Check path containment (must be strictly inside BUILD, which is inside ROOT)
+    try:
+        abs_path.relative_to(abs_build)
+        abs_path.relative_to(abs_root)
+    except ValueError:
+        session.error(f"Safety Check Failed: Path '{abs_path}' is outside the authorized build directory.")
+        return
+        
+    # 3. Prevent deleting critical parent directories
+    if abs_path in (abs_root, abs_build):
+        session.error(f"Safety Check Failed: Attempted to delete critical folder '{abs_path}'.")
+        return
+        
+    # 4. Folder name specific guard
+    if abs_path.name not in ("logs", "reports"):
+        session.error(f"Safety Check Failed: Folder name '{abs_path.name}' is not allowed for log cleaning.")
+        return
+        
+    # If all checks pass, delete it
+    if abs_path.exists():
+        session.log(f"Removing {abs_path} ...")
+        shutil.rmtree(abs_path)
+
+
+@nox.session(python=False)
+def clean_logs(session: nox.Session) -> None:
+    """Clean logs and test reports under build/ without deleting cache."""
+    for folder in (LOGS, REPORTS):
+        _safe_remove_dir(session, folder)
+    session.log("🧹 Logs and reports cleaned.")
+
+

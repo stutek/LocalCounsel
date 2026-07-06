@@ -28,3 +28,5 @@ As the development agent, you must strictly follow these rules when working in t
 7. **Requirements Tracking**: Always consult the `requirements/` directory as the single source of truth for what needs to be built. Update the requirements documents immediately when new features or constraints are confirmed.
 8. **Test-Driven Security**: Features involving local filesystem access or network harnesses must be tested incrementally, avoiding mass execution of code until the harness design is proven.
 9. **Documenting Workarounds and Fallbacks**: Whenever implementing a fallback mechanism or a workaround for a known issue (e.g., OS-specific limitations, library bugs), you must explicitly document the reasoning in the code comments. Furthermore, you MUST ensure that the fallback path actively prints a warning or error log to the console so that alternative execution paths never happen silently.
+10. **Do Not Commit Code**: Do not automatically stage (`git add`) or commit (`git commit`) changes to the Git repository. Always leave modified files in the working directory as unstaged/uncommitted so the user can review the work before committing.
+
