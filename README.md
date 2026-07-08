@@ -3,7 +3,7 @@ type: Project Overview
 title: LocalCounsel
 description: Local-first compliance assistant that reviews documents against Erasmus+, GDPR, and EU AI Act using a pluggable local LLM.
 tags: [overview, readme, compliance, local-first]
-timestamp: 2026-07-08T00:00:00+02:00
+timestamp: 2026-07-08T21:30:00+02:00
 ---
 
 # LocalCounsel
@@ -21,6 +21,12 @@ The LLM is **pluggable**: the app talks to a local OpenAI-compatible
 `llama-server`, so the underlying model (Gemma, DeepSeek, …) is swapped by
 booting a different GGUF — no code changes.
 
+Higher-level orchestration — chat UI, retrieval-augmented context, scheduled data
+syncs, and the **PII-scrubbing anonymizer** that runs before any external call —
+is handled by a self-hosted **[Dify.ai](https://dify.ai)** workflow stack, launched
+locally via Docker Compose (`nox -s dify`). It stays on your machine; nothing is
+sent to Dify's cloud.
+
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full design and
 [requirements/requirements.md](requirements/requirements.md) for requirements.
 
@@ -30,7 +36,8 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full design and
 | --- | --- |
 | Automation pipeline | **nox** (`noxfile.py`) |
 | Inference backend | **llama.cpp** + a pluggable GGUF model |
-| RAG + UI engine | **AnythingLLM** Desktop |
+| Orchestration & workflows | **Dify.ai** (self-hosted via Docker Compose) — chat UI, RAG, scheduler, PII anonymizer |
+| Desktop RAG UI (optional) | **AnythingLLM** Desktop |
 | Compliance logic | **Python** + the `openai` client |
 
 ## Requirements
@@ -40,6 +47,8 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full design and
 - Linux x64 — the primary supported target (pinned llama.cpp binary + AnythingLLM
   AppImage). macOS (arm64/x64) download paths exist and are best-effort. Windows
   is currently **not supported** (stubbed).
+- **Docker + Docker Compose** — only for the self-hosted Dify.ai stack
+  (`nox -s dify`); not needed for the core assistant, tests, or CLI.
 
 ## Usage
 
@@ -53,6 +62,9 @@ nox -s okf_semantic  # advisory LLM review of the docs (boots the LLM; slow)
 nox -s unit        # run the fast, LLM-free unit tests (no server boot)
 nox -s stop_llm    # stop the server and its child processes
 nox -s ui          # launch the AnythingLLM desktop UI
+nox -s dify        # launch the self-hosted Dify.ai workflow stack (Docker Compose; boots the LLM)
+nox -s boot_dify   # start the Dify.ai stack + local LLM
+nox -s stop_dify   # stop the Dify.ai Docker Compose stack
 ```
 
 Running bare `nox` runs the default sessions — `okf` then `unit` (both fast, no
@@ -73,6 +85,7 @@ pipeline at another GGUF and update the logical model name:
 | `LC_LLAMA_URL` | pinned llama.cpp release | Inference backend binaries |
 | `LC_LLM_HOST` / `LC_LLM_PORT` | `127.0.0.1` / `8080` | Server bind address |
 | `LC_LLM_TIMEOUT` | `300` | Client timeout (seconds) |
+| `LC_DIFY_URL` | pinned Dify.ai release (1.15.0) | Dify workflow stack source |
 
 Example — run a different model:
 
