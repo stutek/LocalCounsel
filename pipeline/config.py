@@ -56,7 +56,7 @@ def get_anythingllm_defaults() -> tuple[str, str]:
 
 
 def get_dify_defaults() -> tuple[str, str]:
-    return "https://github.com/langgenius/dify/archive/refs/heads/main.tar.gz", "dify.tar.gz"
+    return "https://github.com/langgenius/dify/archive/refs/tags/1.15.0.tar.gz", "dify.tar.gz"
 
 
 _llama_url_default, _llama_name_default = get_llama_defaults()
@@ -100,9 +100,14 @@ _LLAMA_SHA256_DEFAULT = (
     if LLAMA_URL == LLAMA_LINUX_X64_URL
     else ""
 )
+_DIFY_SHA256_DEFAULT = (
+    "18c9a711ac715855bd3d0882966b14143692a48269181c1dd7f7bfcc702a66ba"
+    if DIFY_URL == "https://github.com/langgenius/dify/archive/refs/tags/1.15.0.tar.gz"
+    else ""
+)
 MODEL_SHA256 = env("LC_MODEL_SHA256", _MODEL_SHA256_DEFAULT) or None
 LLAMA_SHA256 = env("LC_LLAMA_SHA256", _LLAMA_SHA256_DEFAULT) or None
-DIFY_SHA256 = env("LC_DIFY_SHA256", "") or None
+DIFY_SHA256 = env("LC_DIFY_SHA256", _DIFY_SHA256_DEFAULT) or None
 
 # --------------------------------------------------------------------------- #
 # Server bind address                                                           #

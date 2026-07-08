@@ -10,6 +10,10 @@ from pathlib import Path
 from .config import (
     ANYTHINGLLM_APP,
     ANYTHINGLLM_URL,
+    DIFY_DIR,
+    DIFY_SHA256,
+    DIFY_TAR,
+    DIFY_URL,
     LLAMA_DIR,
     LLAMA_SHA256,
     LLAMA_TAR,
@@ -134,6 +138,30 @@ def find_server() -> Path | None:
     return None
 
 
+def find_dify() -> Path | None:
+    if not DIFY_DIR.exists():
+        return None
+    for path in DIFY_DIR.rglob("docker-compose.yaml"):
+        if path.is_file() and path.parent.name == "docker":
+            return path.parent
+    return None
+
+
+def extract_dify() -> None:
+    """Extract the Dify tarball into build/dify."""
+    docker_dir = find_dify()
+    if docker_dir is not None:
+        print("✓ Dify already extracted")
+        return
+    DIFY_DIR.mkdir(parents=True, exist_ok=True)
+    print("⇲ extracting Dify ...")
+    with tarfile.open(DIFY_TAR, "r:gz") as tar:
+        try:
+            tar.extractall(DIFY_DIR, filter="data")
+        except TypeError:
+            tar.extractall(DIFY_DIR)
+
+
 def provision() -> None:
     require_supported_platform()
     download(MODEL_URL, MODEL_FILE, sha256=MODEL_SHA256)
@@ -146,3 +174,5 @@ def provision() -> None:
         ANYTHINGLLM_APP.chmod(0o755)
     except OSError:
         pass
+    download(DIFY_URL, DIFY_TAR, sha256=DIFY_SHA256, tofu=True)
+    extract_dify()

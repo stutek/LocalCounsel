@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import signal
 import subprocess
 import time
@@ -11,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .config import HOST, LOGS, MODEL_FILE, PID_FILE, PORT, require_supported_platform
-from .provisioning import find_server, provision
+from .provisioning import find_dify, find_server, provision
 from .util import link_latest, stamp
 
 
@@ -125,3 +126,56 @@ def stop_llm() -> None:
     finally:
         PID_FILE.unlink(missing_ok=True)
         print("🧹 Resources cleaned up.")
+
+
+def _docker_compose_cmd() -> list[str] | None:
+    if shutil.which("docker") and subprocess.run(["docker", "compose", "version"], capture_output=True).returncode == 0:
+        return ["docker", "compose"]
+    if shutil.which("docker-compose"):
+        return ["docker-compose"]
+    return None
+
+
+def boot_dify(log_stamp: str | None = None) -> None:
+    """Boot Dify stack via Docker Compose (boots local LLM first if needed)."""
+    require_supported_platform()
+    boot_llm(log_stamp=log_stamp)
+
+    provision()
+    docker_dir = find_dify()
+    if docker_dir is None:
+        raise SystemExit("Dify docker directory not found after provisioning!")
+
+    cmd = _docker_compose_cmd()
+    if cmd is None:
+        raise SystemExit("Docker Compose is required to run Dify. Please install Docker and Docker Compose.")
+
+    env_file = docker_dir / ".env"
+    env_example = docker_dir / ".env.example"
+    if not env_file.exists() and env_example.exists():
+        print(f"Creating Dify .env from {env_example} ...")
+        shutil.copy(env_example, env_file)
+
+    print("Booting Dify stack via Docker Compose ...")
+    res = subprocess.run(cmd + ["up", "-d"], cwd=str(docker_dir), check=False)
+    if res.returncode != 0:
+        raise SystemExit(f"✗ Failed to start Dify (docker compose exited with code {res.returncode}).")
+    print("\n✅ Dify stack is online! Access the UI at http://localhost/")
+
+
+def stop_dify() -> None:
+    """Stop the Dify Docker Compose stack."""
+    require_supported_platform()
+    docker_dir = find_dify()
+    if docker_dir is None:
+        print("Dify is not provisioned or extracted; nothing to stop.")
+        return
+
+    cmd = _docker_compose_cmd()
+    if cmd is None:
+        print("Docker Compose not found; cannot stop Dify containers.")
+        return
+
+    print("🛑 Stopping Dify Docker Compose stack ...")
+    subprocess.run(cmd + ["down"], cwd=str(docker_dir), check=False)
+    print("🧹 Dify resources cleaned up.")
