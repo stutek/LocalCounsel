@@ -3,7 +3,7 @@ type: Architecture
 title: Architecture — Google Health to openEHR Sync
 description: System design for local Google Health/Fit data ingestion, openEHR mapping, and secure local storage.
 tags: [architecture, design, health, openEHR, privacy]
-timestamp: 2026-07-06T13:42:00+02:00
+timestamp: 2026-07-08T13:42:00+02:00
 ---
 
 # Architecture — Google Health to openEHR Sync
@@ -148,7 +148,7 @@ We have selected a **Persistent SQLite Database** (`local_cache/openehr.db`) as 
 * The local `EHRbase` runs on loopback `127.0.0.1` and requires Basic Authentication. The credentials are randomly generated during the `nox -s provision` phase and saved locally.
 
 ### 6.3 Privacy-Preserving Hybrid Cloud (Anonymization Filter)
-To ensure the highest safety and scientific depth, the Longevity Mentor utilizes a **paid external Frontier Model** (like Claude 3.5 Sonnet or Gemini 1.5 Pro) for high-level reasoning and research analysis. To guarantee absolute data privacy and compliance with GDPR, the following security measures are implemented:
+To ensure the highest safety and scientific depth, the Longevity Mentor utilizes a **paid external Frontier Model** (a current frontier model, e.g. Claude or Gemini) for high-level reasoning and research analysis. To guarantee absolute data privacy and compliance with GDPR, the following security measures are implemented:
 
 * **Local Anonymization Filter (PII Scrubbing)**: Before any prompt leaves the local machine, a dedicated tool in the Dify workflow scrubs all Personally Identifiable Information (PII) including:
   * Names, email addresses, phone numbers, and home addresses.

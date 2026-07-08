@@ -18,6 +18,6 @@ frontmatter with a required `type` field. A concept's ID is its file path with t
 | [/docs/health-integration-architecture](/docs/health-integration-architecture.md) | Architecture | System design for local Google Health/Fit data ingestion, openEHR mapping, and local storage. |
 | [/docs/erasmus-processes](/docs/erasmus-processes.md) | Process Models | BPMN-style models for application evaluation, monitoring, and final report evaluation. |
 | [/docs/final-report-llm-eu-ai-act](/docs/final-report-llm-eu-ai-act.md) | Compliance Analysis | Final-report stages mapped to LLM-assist potential and EU AI Act constraints. |
-| [/installer/README](/installer/README.md) | Installation Guide | Automated build, test, and deployment pipeline. |
+| [/installer/README](/installer/README.md) | Installation Guide | How the build, provision, boot, test, and deployment pipeline is implemented with nox in the repository root. |
 | [/.agents/agent_instructions](/.agents/agent_instructions.md) | Agent Instructions | Role, context, and development guidelines for the developer AI assistant. |
 | [/.agents/skills/claude-assistant/SKILL](/.agents/skills/claude-assistant/SKILL.md) | Skill | Use this skill to delegate complex coding tasks or queries to Claude (Anthropic). |

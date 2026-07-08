@@ -3,7 +3,7 @@ type: Project Overview
 title: LocalCounsel
 description: Local-first compliance assistant that reviews documents against Erasmus+, GDPR, and EU AI Act using a pluggable local LLM.
 tags: [overview, readme, compliance, local-first]
-timestamp: 2026-06-30T23:39:47+02:00
+timestamp: 2026-07-08T00:00:00+02:00
 ---
 
 # LocalCounsel
@@ -12,8 +12,10 @@ timestamp: 2026-06-30T23:39:47+02:00
 
 A **local-first compliance assistant** that reviews documents and reports against
 regulatory frameworks (Erasmus+, GDPR, EU AI Act), generates evaluation reports,
-and supports partner consultations — all running **entirely on your own machine**
-so sensitive data never leaves your infrastructure.
+and supports partner consultations. Processing is **local by default** and
+raw, identifiable data never leaves your machine. One use case — the Longevity
+Mentor — can optionally send **anonymized, PII-scrubbed** metrics to an external
+frontier model for advanced reasoning; this is off in air-gapped mode.
 
 The LLM is **pluggable**: the app talks to a local OpenAI-compatible
 `llama-server`, so the underlying model (Gemma, DeepSeek, …) is swapped by
@@ -35,7 +37,9 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full design and
 
 - Python 3.10+
 - [`nox`](https://nox.thea.codes/) — `pipx install nox` (or `pip install nox`)
-- Linux x64 (the pinned llama.cpp binary and AnythingLLM AppImage target Ubuntu x64)
+- Linux x64 — the primary supported target (pinned llama.cpp binary + AnythingLLM
+  AppImage). macOS (arm64/x64) download paths exist and are best-effort. Windows
+  is currently **not supported** (stubbed).
 
 ## Usage
 
@@ -45,11 +49,14 @@ nox -s boot_llm    # start llama-server and wait until it is ready
 nox -s run         # boot the LLM (if needed) and run the assistant
 nox -s test        # boot the LLM (if needed) and run the integration tests
 nox -s okf         # verify the docs are a conformant OKF v0.1 bundle
+nox -s okf_semantic  # advisory LLM review of the docs (boots the LLM; slow)
+nox -s unit        # run the fast, LLM-free unit tests (no server boot)
 nox -s stop_llm    # stop the server and its child processes
 nox -s ui          # launch the AnythingLLM desktop UI
 ```
 
-Running bare `nox` runs the default sessions — `okf` (fast, no LLM) then `test`.
+Running bare `nox` runs the default sessions — `okf` then `unit` (both fast, no
+LLM), then `test`.
 
 The first `provision`/`boot_llm` downloads several GB (model weights + binaries)
 into `build/` (gitignored). Subsequent runs reuse the cache.

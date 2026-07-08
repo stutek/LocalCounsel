@@ -3,7 +3,7 @@ type: Architecture
 title: Architecture — LocalCounsel
 description: System design covering components, provisioning/startup flow, the compliance review workflow, and LLM pluggability.
 tags: [architecture, design, llm, local-first]
-timestamp: 2026-06-30T23:39:47+02:00
+timestamp: 2026-07-08T00:00:00+02:00
 ---
 
 # Architecture — LocalCounsel
@@ -101,7 +101,7 @@ flowchart TD
     EX --> BL
     CH --> BL
 
-    BL["bootLlm<br/>start llama-server"] --> WAIT{"wait for port 8080<br/>(up to 60s)"}
+    BL["bootLlm<br/>start llama-server"] --> WAIT{"poll /health<br/>(up to 180s)"}
     WAIT -->|"OK"| READY["✅ LLM online<br/>save PID"]
     WAIT -->|"timeout"| FAIL["❌ kill process<br/>+ error"]
 
