@@ -38,7 +38,7 @@ graph TB
 
         subgraph Inference["🧠 Inference backend (pluggable)"]
             LS["llama-server<br/>127.0.0.1:8080<br/>OpenAI-compatible API"]
-            GG["Gemma-2-2b-it<br/>(GGUF, quantized Q4_K_M)"]
+            GG["Gemma-4-E2B-it<br/>(GGUF, quantized Q4_K_M)"]
             LS --- GG
         end
 

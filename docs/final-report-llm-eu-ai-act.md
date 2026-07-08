@@ -9,7 +9,7 @@ timestamp: 2026-06-30T23:23:37+02:00
 # Final report evaluation — LLM-assist potential & EU AI Act constraints
 
 Maps each stage of the [final report evaluation process](erasmus-processes.md#3-final-report-evaluation)
-to where a **small local LLM** (e.g. gemma-2-2b / a small "Gemma") can help, together
+to where a **small local LLM** (e.g. gemma-4-E2B / a small "Gemma") can help, together
 with the **EU AI Act** constraints and safeguards that apply.
 
 > ⚠️ **Not legal advice.** This is an engineering risk-mapping to guide design. The

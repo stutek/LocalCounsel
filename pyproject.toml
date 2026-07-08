@@ -15,6 +15,7 @@ classifiers = [
 ]
 dependencies = [
     "openai>=1.30",
+    "cryptography>=42",
 ]
 
 [project.optional-dependencies]

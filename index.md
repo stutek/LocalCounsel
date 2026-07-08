@@ -10,6 +10,7 @@ frontmatter with a required `type` field. A concept's ID is its file path with t
 | Concept ID | Type | Description |
 | --- | --- | --- |
 | [/README](/README.md) | Project Overview | Local-first compliance assistant that reviews documents against Erasmus+, GDPR, and EU AI Act using a pluggable local LLM. |
+| [/TODO](/TODO.md) | Backlog | Consolidated backlog of known gaps, weaknesses, and risks across health-sync, openEHR persistence, encryption, anonymization, and AI advice. |
 | [/requirements/erasmus/requirements](/requirements/erasmus/requirements.md) | Requirements | Functional and non-functional requirements for the Erasmus+ assistant. |
 | [/requirements/erasmus/use_cases/erasmus_plus](/requirements/erasmus/use_cases/erasmus_plus.md) | Use Case | Contract and execution management use case for Erasmus+ projects. |
 | [/requirements/longevity_mentor/requirements](/requirements/longevity_mentor/requirements.md) | Requirements | Functional and non-functional requirements for the Longevity Mentor compliance assistant. |
@@ -17,6 +18,7 @@ frontmatter with a required `type` field. A concept's ID is its file path with t
 | [/docs/ARCHITECTURE](/docs/ARCHITECTURE.md) | Architecture | System design: components, startup flow, review workflow, LLM pluggability. |
 | [/docs/health-integration-architecture](/docs/health-integration-architecture.md) | Architecture | System design for local Google Health/Fit data ingestion, openEHR mapping, and local storage. |
 | [/docs/erasmus-processes](/docs/erasmus-processes.md) | Process Models | BPMN-style models for application evaluation, monitoring, and final report evaluation. |
+| [/docs/bia-e2e-flow](/docs/bia-e2e-flow.md) | Process Models | BPMN-style model of the BIA end-to-end test: mock retrieval, openEHR mapping, encrypted persistence, and anonymized nutrition advice. |
 | [/docs/final-report-llm-eu-ai-act](/docs/final-report-llm-eu-ai-act.md) | Compliance Analysis | Final-report stages mapped to LLM-assist potential and EU AI Act constraints. |
 | [/installer/README](/installer/README.md) | Installation Guide | How the build, provision, boot, test, and deployment pipeline is implemented with nox in the repository root. |
 | [/.agents/agent_instructions](/.agents/agent_instructions.md) | Agent Instructions | Role, context, and development guidelines for the developer AI assistant. |

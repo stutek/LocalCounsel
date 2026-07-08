@@ -68,7 +68,7 @@ pipeline at another GGUF and update the logical model name:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `LC_MODEL_URL` | Gemma-2-2b-it Q4_K_M GGUF | Model weights to download |
+| `LC_MODEL_URL` | Gemma-4-E2B-it Q4_K_M GGUF | Model weights to download |
 | `LC_MODEL_NAME` | `gemma` | Logical name sent to the API |
 | `LC_LLAMA_URL` | pinned llama.cpp release | Inference backend binaries |
 | `LC_LLM_HOST` / `LC_LLM_PORT` | `127.0.0.1` / `8080` | Server bind address |

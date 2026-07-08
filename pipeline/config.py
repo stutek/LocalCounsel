@@ -67,7 +67,7 @@ _dify_url_default, _dify_name_default = get_dify_defaults()
 # Artifacts (env-overridable)                                                   #
 # --------------------------------------------------------------------------- #
 MODEL_URL_DEFAULT = (
-    "https://huggingface.co/bartowski/gemma-2-2b-it-GGUF/resolve/main/gemma-2-2b-it-Q4_K_M.gguf"
+    "https://huggingface.co/bartowski/google_gemma-4-E2B-it-GGUF/resolve/main/google_gemma-4-E2B-it-Q4_K_M.gguf"
 )
 MODEL_URL = env("LC_MODEL_URL", MODEL_URL_DEFAULT)
 MODEL_FILE = DOWNLOADS / env("LC_MODEL_FILE", MODEL_URL.rsplit("/", 1)[-1])
@@ -91,7 +91,7 @@ DIFY_TAR = DOWNLOADS / env("LC_DIFY_FILE", _dify_name_default)
 # leave it blank there and provisioning.download() falls back to a loud
 # no-verification warning instead of failing on a guaranteed mismatch.
 _MODEL_SHA256_DEFAULT = (
-    "e0aee85060f168f0f2d8473d7ea41ce2f3230c1bc1374847505ea599288a7787"
+    "b5310340b3a23d31655d7119d100d5df1b2d8ee17b3ca8b0a23ad7e9eb5fa705"
     if MODEL_URL == MODEL_URL_DEFAULT
     else ""
 )

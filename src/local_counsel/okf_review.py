@@ -35,8 +35,9 @@ FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n(.*)$", re.S)
 META_LINE_RE = re.compile(r"^([A-Za-z_][\w-]*):[ \t]*(.*?)[ \t]*$")
 INDEX_ROW_RE = re.compile(r"\|\s*\[[^\]]*\]\((/[^)\s]+?)\.md\)\s*\|([^|]*)\|([^|]*)\|")
 
-# gemma-2-2b has a small usable context; keep prompts narrow (one document, one
-# question per call) and truncate bodies so prompt + reply always fit.
+# Small local models can have a limited *reliable* working context; keep prompts
+# narrow (one document, one question per call) and truncate bodies so prompt +
+# reply always fit, regardless of the booted GGUF (e.g. gemma-4-E2B).
 MAX_BODY_CHARS = 6000
 
 VERDICTS = ("PASS", "FLAG", "INCONCLUSIVE")
