@@ -35,6 +35,24 @@ def test_write_md_report_totals_and_failure_section(tmp_path):
     assert totals["ok"] is False
 
     content = md_path.read_text(encoding="utf-8")
-    assert "## Failures" in content
+    assert "### Failures" in content
     assert "test_fail" in content
     assert "kaboom in the widget" in content
+
+    # Test cumulative history report
+    cumulative_path = tmp_path / "test-report.md"
+    assert cumulative_path.exists()
+    cumulative_content = cumulative_path.read_text(encoding="utf-8")
+    assert "# LocalCounsel — Test Report History" in cumulative_content
+    assert "## Run on 2026-07-08T00:00:00Z" in cumulative_content
+
+    # Run again with a new timestamp to test appending/prepended history
+    reporting.write_md_report(
+        xml_path, md_path, datetime(2026, 7, 9, tzinfo=timezone.utc)
+    )
+    updated_cumulative = cumulative_path.read_text(encoding="utf-8")
+    assert "## Run on 2026-07-09T00:00:00Z" in updated_cumulative
+    # The newer run should be prepended before the older run
+    pos_9 = updated_cumulative.find("2026-07-09T00:00:00Z")
+    pos_8 = updated_cumulative.find("2026-07-08T00:00:00Z")
+    assert pos_9 < pos_8

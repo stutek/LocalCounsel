@@ -50,11 +50,10 @@ def write_md_report(xml_path: Path, md_path: Path, generated) -> dict:
     passed = totals["tests"] - totals["failures"] - totals["errors"] - totals["skipped"]
     ok = totals["failures"] == 0 and totals["errors"] == 0
 
-    lines = [
-        "# LocalCounsel — Test Report",
+    timestamp_str = generated.isoformat(timespec='seconds').replace('+00:00', 'Z')
+    run_lines = [
+        f"## Run on {timestamp_str} — {'✅ PASSED' if ok else '❌ FAILED'}",
         "",
-        f"- **Generated:** {generated.isoformat(timespec='seconds').replace('+00:00', 'Z')}",
-        f"- **Result:** {'✅ PASSED' if ok else '❌ FAILED'}",
         f"- **Totals:** {totals['tests']} tests · {passed} passed · "
         f"{totals['failures']} failed · {totals['errors']} errors · {totals['skipped']} skipped",
         f"- **Duration:** {totals['time']:.2f}s",
@@ -62,27 +61,49 @@ def write_md_report(xml_path: Path, md_path: Path, generated) -> dict:
         "| Test | Outcome | Time |",
         "| --- | --- | --- |",
     ]
-    lines += [f"| `{c['name']}` | {icon[c['outcome']]} {c['outcome']} | {c['time']:.2f}s |" for c in cases]
+    run_lines += [f"| `{c['name']}` | {icon[c['outcome']]} {c['outcome']} | {c['time']:.2f}s |" for c in cases]
 
     failing = [c for c in cases if c["outcome"] in ("failed", "error")]
     if failing:
-        lines += ["", "## Failures", ""]
+        run_lines += ["", "### Failures", ""]
         for c in failing:
-            lines += [f"### `{c['name']}`", "", "```", c["detail"] or "(no detail)", "```", ""]
+            run_lines += [f"#### `{c['name']}`", "", "```", c["detail"] or "(no detail)", "```", ""]
 
-    # Per-test captured output (requires junit_logging=all in pyproject). Collapsed
-    # so the report stays scannable; expand to observe stdout/stderr of any test.
     if any(c["sysout"] or c["syserr"] for c in cases):
-        lines += ["", "## Captured output", ""]
+        run_lines += ["", "### Captured output", ""]
         for c in cases:
             if not (c["sysout"] or c["syserr"]):
                 continue
-            lines += [f"<details><summary>{icon[c['outcome']]} <code>{c['name']}</code></summary>", ""]
+            run_lines += [f"<details><summary>{icon[c['outcome']]} <code>{c['name']}</code></summary>", ""]
             if c["sysout"]:
-                lines += ["**stdout**", "", "```text", c["sysout"], "```", ""]
+                run_lines += ["**stdout**", "", "```text", c["sysout"], "```", ""]
             if c["syserr"]:
-                lines += ["**stderr**", "", "```text", c["syserr"], "```", ""]
-            lines += ["</details>", ""]
+                run_lines += ["**stderr**", "", "```text", c["syserr"], "```", ""]
+            run_lines += ["</details>", ""]
 
-    md_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    # 1. Standalone timestamped report
+    standalone_lines = [
+        "# LocalCounsel — Test Report",
+        "",
+        f"- **Generated:** {timestamp_str}",
+    ] + run_lines[1:]
+    md_path.write_text("\n".join(standalone_lines) + "\n", encoding="utf-8")
+
+    # 2. Cumulative history report
+    cumulative_path = md_path.parent / "test-report.md"
+    header = "# LocalCounsel — Test Report History\n\n"
+    existing_content = ""
+    if cumulative_path.exists():
+        try:
+            content = cumulative_path.read_text(encoding="utf-8")
+            if content.startswith(header):
+                existing_content = content[len(header):]
+            else:
+                existing_content = content
+        except OSError:
+            pass
+
+    new_cumulative_content = header + "\n".join(run_lines) + "\n\n" + existing_content
+    cumulative_path.write_text(new_cumulative_content, encoding="utf-8")
+
     return {**totals, "passed": passed, "ok": ok}
