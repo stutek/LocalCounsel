@@ -1,44 +1,39 @@
 ---
 type: Project Overview
 title: LocalCounsel
-description: Local-first compliance assistant that reviews documents against Erasmus+, GDPR, and EU AI Act using a pluggable local LLM.
-tags: [overview, readme, compliance, local-first]
-timestamp: 2026-07-08T21:30:00+02:00
+description: Local-first assistant supporting Erasmus+ compliance audits and privacy-preserving Longevity Mentor health-data coaching.
+tags: [overview, readme, compliance, local-first, longevity, health, erasmus-plus]
+timestamp: 2026-07-09T21:00:00+02:00
 ---
 
 # LocalCounsel
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A **local-first compliance assistant** that reviews documents and reports against
-regulatory frameworks (Erasmus+, GDPR, EU AI Act), generates evaluation reports,
-and supports partner consultations. Processing is **local by default** and
-raw, identifiable data never leaves your machine. One use case — the Longevity
-Mentor — can optionally send **anonymized, PII-scrubbed** metrics to an external
-frontier model for advanced reasoning; this is off in air-gapped mode.
+A **local-first compliance and coaching assistant** designed to run fully local, privacy-preserving workflows. It supports two primary use cases:
 
-The LLM is **pluggable**: the app talks to a local OpenAI-compatible
-`llama-server`, so the underlying model (Gemma, DeepSeek, …) is swapped by
-booting a different GGUF — no code changes.
+1. **Erasmus+ Compliance Assistant**: Reviews application documents, project reports, and financial templates against Erasmus+ rules, helping contract managers and financial controllers flag compliance issues and generate evaluation reports.
+2. **Longevity Mentor**: Ingests Google Health/Fit records, parses lifestyle and biometric logs, maps them to standard openEHR schemas, and persists them to an encrypted local SQLite database. It compares metrics against longevity science benchmarks and provides science-backed educational advice using a local LLM or an optional anonymized (PII-scrubbed, fuzzed age) external frontier model.
 
-Higher-level orchestration — chat UI, retrieval-augmented context, scheduled data
-syncs, and the **PII-scrubbing anonymizer** that runs before any external call —
-is handled by a self-hosted **[Dify.ai](https://dify.ai)** workflow stack, launched
-locally via Docker Compose (`nox -s dify`). It stays on your machine; nothing is
-sent to Dify's cloud.
+All processing is **local by default**. Raw, identifiable data never leaves your machine.
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full design and
-[requirements/requirements.md](requirements/requirements.md) for requirements.
+The local LLM is **pluggable**: the application communicates with an OpenAI-compatible local `llama-server` (powered by `llama.cpp`), allowing the underlying model (Gemma, DeepSeek, etc.) to be swapped by simply booting a different GGUF file.
+
+For advanced workflows (such as scheduled syncs, local RAG databases, the **PII-scrubbing anonymizer** filter, and the chat web interfaces), LocalCounsel uses a self-hosted **[Dify.ai](https://dify.ai)** stack launched via Docker Compose (`nox -s dify`).
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the main system design, [docs/health-integration-architecture.md](docs/health-integration-architecture.md) for the Longevity Mentor architecture, and [index.md](index.md) for the OKF bundle entry point.
 
 ## Stack
 
 | Layer | Choice |
 | --- | --- |
 | Automation pipeline | **nox** (`noxfile.py`) |
-| Inference backend | **llama.cpp** + a pluggable GGUF model |
-| Orchestration & workflows | **Dify.ai** (self-hosted via Docker Compose) — chat UI, RAG, scheduler, PII anonymizer |
+| Inference backend | **llama.cpp** + a pluggable GGUF model (default: Gemma-4-E2B-it) |
+| Orchestration & workflows | **Dify.ai** (self-hosted via Docker Compose) — chat UI, RAG database, scheduler, PII anonymizer |
 | Desktop RAG UI (optional) | **AnythingLLM** Desktop |
-| Compliance logic | **Python** + the `openai` client |
+| Medical Storage (Longevity) | **Encrypted Local SQLite** — persists standard **openEHR** compositions |
+| Cryptography (Longevity) | **Envelope Encryption** via Python `cryptography` (scrypt KDF + AES-256-GCM) |
+| Compliance/Advice Logic | **Python** + `openai` client |
 
 ## Requirements
 
@@ -53,25 +48,29 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full design and
 ## Usage
 
 ```bash
-nox -s provision   # idempotently download model + llama.cpp + AnythingLLM
-nox -s boot_llm    # start llama-server and wait until it is ready
-nox -s run         # boot the LLM (if needed) and run the assistant
-nox -s test        # boot the LLM (if needed) and run the integration tests
-nox -s okf         # verify the docs are a conformant OKF v0.1 bundle
-nox -s okf_semantic  # advisory LLM review of the docs (boots the LLM; slow)
-nox -s unit        # run the fast, LLM-free unit tests (no server boot)
-nox -s stop_llm    # stop the server and its child processes
-nox -s ui          # launch the AnythingLLM desktop UI
-nox -s dify        # launch the self-hosted Dify.ai workflow stack (Docker Compose; boots the LLM)
-nox -s boot_dify   # start the Dify.ai stack + local LLM
-nox -s stop_dify   # stop the Dify.ai Docker Compose stack
+nox -s provision   # Idempotently download model + llama.cpp + AnythingLLM
+nox -s boot_llm    # Start llama-server and wait until it is ready
+nox -s run         # Boot the LLM (if needed) and run the assistant
+nox -s test        # Boot the LLM (if needed) and run integration tests (including Longevity E2E)
+nox -s okf         # Verify the docs are a conformant OKF v0.1 bundle
+nox -s okf_semantic  # Advisory LLM review of the docs (boots the LLM; slow)
+nox -s unit        # Run the fast, LLM-free unit tests (encryption, openEHR mapping, etc.)
+nox -s stop_llm    # Stop the server and its child processes
+nox -s ui          # Launch the AnythingLLM desktop UI
+nox -s dify        # Launch the self-hosted Dify.ai workflow stack (Docker Compose; boots the LLM)
+nox -s boot_dify   # Start the Dify.ai stack + local LLM
+nox -s stop_dify   # Stop the Dify.ai Docker Compose stack
 ```
 
-Running bare `nox` runs the default sessions — `okf` then `unit` (both fast, no
-LLM), then `test`.
+Running bare `nox` runs the default sessions — `okf` then `unit` (both fast, no LLM), then `test`.
 
 The first `provision`/`boot_llm` downloads several GB (model weights + binaries)
 into `build/` (gitignored). Subsequent runs reuse the cache.
+
+### Verifying the Workflows
+- **Erasmus+ Compliance checks**: The `run` session invokes the custom assistant logic on local files.
+- **Longevity Mentor BIA Ingestion & Advice**: The integration test suite (`nox -s test`) runs the complete end-to-end BIA pipeline (`tests/test_nutrition_advice_e2e.py`): retrieving health data, translating to openEHR, saving to the encrypted store, anonymizing, and querying the LLM for advice.
+- **Local Unit Tests**: `nox -s unit` runs isolated validation tests for the openEHR mapper, envelope crypto, SQLite storage database, and Dify integrations without needing the local LLM running.
 
 ## Configuration
 
@@ -95,11 +94,8 @@ LC_MODEL_URL="https://…/some-model.gguf" LC_MODEL_NAME="deepseek" nox -s run
 
 ## Compliance posture
 
-The LLM is used strictly as **decision-support with a human in the loop** on every
-gateway and final decision, keeping the system out of the EU AI Act high-risk
-category. Running fully locally keeps processing GDPR-friendly. Final
-classification for any concrete deployment requires legal/DPO review — see
-[docs/final-report-llm-eu-ai-act.md](docs/final-report-llm-eu-ai-act.md).
+- **Erasmus+**: The LLM is used strictly as **decision-support with a human in the loop** on every gateway and final decision, keeping the system out of the EU AI Act high-risk category. Running fully locally keeps processing GDPR-friendly. See [docs/final-report-llm-eu-ai-act.md](docs/final-report-llm-eu-ai-act.md).
+- **Longevity Mentor**: Processing of private biometric/health records is kept strictly local using local-first storage and database envelope encryption (derived from the user's passphrase). External cloud reasoning uses a zero-trust model: the local anonymizer filter dynamically scrubs PII, strips exact calendar dates, and fuzzes the subject's exact age (introducing a +/- 15% variance band) to prevent medical database re-identification before sending data to external APIs. In air-gapped mode, it falls back to the local `llama-server` running Gemma-4-E2B. All coaching output is explicitly tagged as educational guidance, not medical advice.
 
 ## Knowledge bundle (OKF)
 
@@ -114,12 +110,7 @@ without any custom integration — the file system *is* the API.
 - [`index.md`](index.md) is the bundle listing — the entry point mapping every
   Concept ID to its type and description.
 
-Keeping this bundle conformant is a project requirement — see the
-**OKF-Compliant Knowledge Bundle** NFR in
-[requirements/requirements.md](requirements/requirements.md#4-non-functional--architectural-requirements).
-When you add or rename a Markdown doc, give it frontmatter with a `type` and add
-it to [`index.md`](index.md), then run `nox -s okf` to check conformance (it also
-runs by default as part of bare `nox`, so CI catches regressions).
+Keeping this bundle conformant is a project requirement. When you add or rename a Markdown doc, give it frontmatter with a `type` and add it to [`index.md`](index.md), then run `nox -s okf` to check conformance (it also runs by default as part of bare `nox`, so CI catches regressions). For requirements, see [requirements/erasmus/requirements.md](requirements/erasmus/requirements.md) and [requirements/longevity_mentor/requirements.md](requirements/longevity_mentor/requirements.md).
 
 ## License
 
