@@ -1,6 +1,6 @@
 """Local, encrypted openEHR medical repository.
 
-The storage half of the health sync engine (``docs/health-integration-architecture.md``
+The storage half of the health sync engine (``docs/longevity-coach/health-integration-architecture.md``
 §5): a per-user, passphrase-encrypted SQLite database of openEHR compositions.
 
 * :mod:`.crypto` — envelope encryption (scrypt KEK wrapping an AES-256-GCM DEK).

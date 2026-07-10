@@ -1,6 +1,6 @@
 """Deterministic OKF v0.1 knowledge-bundle conformance checks.
 
-See the "OKF-Compliant Knowledge Bundle" NFR in requirements/requirements.md.
+See the "OKF-Compliant Knowledge Bundle" NFR in docs/erasmus/requirements.md.
 The advisory *semantic* review lives in ``src/local_counsel/okf_review.py`` (app
 code, uses the LLM); this module is the pure-stdlib structural gate.
 """

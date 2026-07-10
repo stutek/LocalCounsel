@@ -27,4 +27,4 @@ This pipeline automates and supports setup, execution, and verification for both
 | `ui` | Launch the AnythingLLM desktop UI. | Provides a desktop chat workspace for documents. | Can be used as a local chat interface. |
 | `dify` / `boot_dify` | Launch the Dify workflow stack via Docker Compose. | Orchestrates document workflows, RAG, and audits. | Drives scheduled syncs, anonymizer filters, and chat. |
 
-Run `nox -l` to list every session. For the full design and setup see the root [`README.md`](../README.md) and [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md).
+Run `nox -l` to list every session. For the full design and setup see the root [`README.md`](../README.md) and [`docs/core/ARCHITECTURE.md`](../docs/core/ARCHITECTURE.md).

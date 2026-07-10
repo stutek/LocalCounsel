@@ -19,7 +19,7 @@ The assistant supports two National Agency roles across the processes below:
   costs, budget-category compliance, supporting documents, recovery of undue amounts.
 
 The supported processes are modelled as BPMN-style diagrams in
-[../../../docs/erasmus-processes.md](../../../docs/erasmus-processes.md):
+[../erasmus-processes.md](../erasmus-processes.md):
 **application evaluation**, **project monitoring**, and **final report evaluation**.
 
 ## 2. Goals

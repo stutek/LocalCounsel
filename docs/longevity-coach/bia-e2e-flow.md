@@ -146,5 +146,5 @@ flowchart LR
   carries relative month offsets, biometric numbers, sex, and a ±15% **fuzzed age
   band** — never dates, exact age, or other PII.
 
-See [Architecture — Google Health to openEHR Sync](/docs/health-integration-architecture.md)
+See [Architecture — Google Health to openEHR Sync](/docs/longevity-coach/health-integration-architecture.md)
 for the broader system design and the storage/encryption rationale.

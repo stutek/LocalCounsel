@@ -1,6 +1,6 @@
 """Health data ingestion for the Longevity Mentor.
 
-The sync engine has two halves (see ``docs/health-integration-architecture.md``):
+The sync engine has two halves (see ``docs/longevity-coach/health-integration-architecture.md``):
 a **Connector** that retrieves raw records from Google Health/Fit, and a
 **Mapper** that translates them into openEHR compositions. This package currently
 ships the connector side; the mock connector below lets the rest of the pipeline

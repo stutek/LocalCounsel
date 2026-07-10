@@ -11,8 +11,8 @@ timestamp: 2026-07-08T17:40:00+02:00
 Consolidated, honest inventory of what is **not** done or **not** fully robust in
 the Longevity Mentor health pipeline. Grouped by area; each item notes the risk.
 Related design detail lives in
-[health-integration-architecture.md](/docs/health-integration-architecture.md)
-(esp. §7) and [bia-e2e-flow.md](/docs/bia-e2e-flow.md).
+[health-integration-architecture.md](/docs/longevity-coach/health-integration-architecture.md)
+(esp. §7) and [bia-e2e-flow.md](/docs/longevity-coach/bia-e2e-flow.md).
 
 Priority key: **P1** = correctness/safety/privacy risk or blocks real use · **P2** =
 important robustness/fidelity · **P3** = nice-to-have / polish.

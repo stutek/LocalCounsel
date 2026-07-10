@@ -15,7 +15,7 @@ routed through the encrypted local medical repository:
 Like ``test_llm_integration.py`` this is an INTEGRATION test: it needs a running
 model server, which the nox ``test`` session boots first (``nox -s test``).
 
-A BPMN-style diagram of this flow lives in ``docs/bia-e2e-flow.md``.
+A BPMN-style diagram of this flow lives in ``docs/longevity-coach/bia-e2e-flow.md``.
 """
 
 from __future__ import annotations

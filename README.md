@@ -21,7 +21,7 @@ The local LLM is **pluggable**: the application communicates with an OpenAI-comp
 
 For advanced workflows (such as scheduled syncs, local RAG databases, the **PII-scrubbing anonymizer** filter, and the chat web interfaces), LocalCounsel uses a self-hosted **[Dify.ai](https://dify.ai)** stack launched via Docker Compose (`nox -s dify`).
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the main system design, [docs/health-integration-architecture.md](docs/health-integration-architecture.md) for the Longevity Mentor architecture, and [index.md](index.md) for the OKF bundle entry point.
+See [docs/core/ARCHITECTURE.md](docs/core/ARCHITECTURE.md) for the main system design, [docs/longevity-coach/health-integration-architecture.md](docs/longevity-coach/health-integration-architecture.md) for the Longevity Mentor architecture, and [index.md](index.md) for the OKF bundle entry point.
 
 ## Stack
 
@@ -94,7 +94,7 @@ LC_MODEL_URL="https://…/some-model.gguf" LC_MODEL_NAME="deepseek" nox -s run
 
 ## Compliance posture
 
-- **Erasmus+**: The LLM is used strictly as **decision-support with a human in the loop** on every gateway and final decision, keeping the system out of the EU AI Act high-risk category. Running fully locally keeps processing GDPR-friendly. See [docs/final-report-llm-eu-ai-act.md](docs/final-report-llm-eu-ai-act.md).
+- **Erasmus+**: The LLM is used strictly as **decision-support with a human in the loop** on every gateway and final decision, keeping the system out of the EU AI Act high-risk category. Running fully locally keeps processing GDPR-friendly. See [docs/erasmus/final-report-llm-eu-ai-act.md](docs/erasmus/final-report-llm-eu-ai-act.md).
 - **Longevity Mentor**: Processing of private biometric/health records is kept strictly local using local-first storage and database envelope encryption (derived from the user's passphrase). External cloud reasoning uses a zero-trust model: the local anonymizer filter dynamically scrubs PII, strips exact calendar dates, and fuzzes the subject's exact age (introducing a +/- 15% variance band) to prevent medical database re-identification before sending data to external APIs. In air-gapped mode, it falls back to the local `llama-server` running Gemma-4-E2B. All coaching output is explicitly tagged as educational guidance, not medical advice.
 
 ## Knowledge bundle (OKF)
@@ -106,11 +106,11 @@ without any custom integration — the file system *is* the API.
 - Every non-reserved Markdown file is an OKF **concept**: it carries YAML
   frontmatter with a required `type` field, plus `title`, `description`, `tags`,
   and a `timestamp`. A concept's **ID** is its path with the `.md` removed
-  (e.g. `docs/ARCHITECTURE`).
+  (e.g. `docs/core/ARCHITECTURE`).
 - [`index.md`](index.md) is the bundle listing — the entry point mapping every
   Concept ID to its type and description.
 
-Keeping this bundle conformant is a project requirement. When you add or rename a Markdown doc, give it frontmatter with a `type` and add it to [`index.md`](index.md), then run `nox -s okf` to check conformance (it also runs by default as part of bare `nox`, so CI catches regressions). For requirements, see [requirements/erasmus/requirements.md](requirements/erasmus/requirements.md) and [requirements/longevity_mentor/requirements.md](requirements/longevity_mentor/requirements.md).
+Keeping this bundle conformant is a project requirement. When you add or rename a Markdown doc, give it frontmatter with a `type` and add it to [`index.md`](index.md), then run `nox -s okf` to check conformance (it also runs by default as part of bare `nox`, so CI catches regressions). For requirements, see [docs/erasmus/requirements.md](docs/erasmus/requirements.md) and [docs/longevity-coach/requirements.md](docs/longevity-coach/requirements.md).
 
 ## License
 

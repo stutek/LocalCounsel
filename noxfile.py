@@ -60,7 +60,7 @@ def okf(session: nox.Session) -> None:
 
     Fails if any non-reserved Markdown file lacks frontmatter with a ``type``, or
     if index.md is missing, does not list a concept, or lists a missing file. See
-    the "OKF-Compliant Knowledge Bundle" NFR in requirements/requirements.md.
+    the "OKF-Compliant Knowledge Bundle" NFR in docs/erasmus/requirements.md.
     """
     concepts = okf_concept_files()
     problems = check_okf()

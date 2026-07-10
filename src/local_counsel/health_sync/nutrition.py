@@ -6,7 +6,7 @@ frontier model. It summarizes 12 months of body-composition *fluctuations*
 **no PII and no absolute dates** — timestamps become relative month offsets
 ("current", "-1 mo", ...) and, when a subject profile is supplied, the exact age
 becomes a ±15% fuzzed band, per the anonymization filter in
-``docs/health-integration-architecture.md`` §6.3.
+``docs/longevity-coach/health-integration-architecture.md`` §6.3.
 
 The pure functions here (:func:`summarize_fluctuations`, :func:`build_nutrition_prompt`)
 are LLM-free and unit-testable; :func:`ask_nutrition_advice` wires the prompt to
@@ -22,7 +22,7 @@ from typing import Any, Callable, Sequence
 from .mock_google import BiaMeasurement
 
 # Fraction of age used as the ±fuzz half-width, per the anonymization filter
-# (docs/health-integration-architecture.md §6.3): exact age is never emitted, only
+# (docs/longevity-coach/health-integration-architecture.md §6.3): exact age is never emitted, only
 # a fuzzed band, to resist database cross-matching re-identification.
 AGE_FUZZ_FRACTION = 0.15
 

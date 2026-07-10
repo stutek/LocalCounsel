@@ -11,7 +11,7 @@ timestamp: 2026-07-08T13:36:00+02:00
 ## 1. Scope
 Coaching, lifestyle recommendations, biological age tracking, and compliance checking for healthy longevity optimization. The assistant analyzes user-provided health records, blood panel details, sleep stats, and daily routines, comparing them against established health metrics and longevity science guidelines (e.g. cardiovascular health, glycemic control, sleep architecture).
 
-Processing runs locally by default (GDPR / medical privacy), and raw, identifiable health data is never uploaded to third-party cloud services. For advanced reasoning, this use case may optionally send **anonymized, PII-scrubbed** metrics (see §6.3 of the [health integration architecture](../../../docs/health-integration-architecture.md)) to an external frontier model; this hybrid path is disabled in air-gapped mode.
+Processing runs locally by default (GDPR / medical privacy), and raw, identifiable health data is never uploaded to third-party cloud services. For advanced reasoning, this use case may optionally send **anonymized, PII-scrubbed** metrics (see §6.3 of the [health integration architecture](../health-integration-architecture.md)) to an external frontier model; this hybrid path is disabled in air-gapped mode.
 
 ## 1a. Supported Users (Personas)
 - **Longevity Coach / Mentor**: Analyzes client records, generates personalized exercise/sleep/nutrition plans, and tracks changes over time.

@@ -1,7 +1,7 @@
 """Map BIA measurements into openEHR-style compositions.
 
 This is the **Mapper** half of the sync engine (see
-``docs/health-integration-architecture.md`` §4). It translates a
+``docs/longevity-coach/health-integration-architecture.md`` §4). It translates a
 :class:`~local_counsel.health_sync.mock_google.BiaMeasurement` into a canonical
 openEHR *Composition* dict built from published archetypes (body weight, BMI, and
 a body-composition cluster for fat/muscle/water).
