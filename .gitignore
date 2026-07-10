@@ -1,3 +1,4 @@
+private/
 # Build / work cache (provisioned models, binaries, server PID)
 build/
 
