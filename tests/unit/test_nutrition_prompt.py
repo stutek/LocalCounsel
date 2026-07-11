@@ -16,7 +16,12 @@ from local_counsel.health_sync import (
 
 FIXED_END = datetime(2026, 7, 8, tzinfo=timezone.utc)
 SERIES = generate_bia_series(12, end_date=FIXED_END)
-PROFILE = SubjectProfile(sex="Male", age_years=42)
+PROFILE = SubjectProfile(
+    sex="Male",
+    age_years=47,
+    target_body_fat_pct=15.0,
+    min_healthy_body_fat_pct=10.0,
+)
 
 
 def test_summary_captures_all_four_metrics():
@@ -63,8 +68,8 @@ def test_prompt_recommends_professional_oversight():
 
 
 def test_fuzzed_age_band_is_deterministic_and_excludes_exact_age():
-    low, high = PROFILE.fuzzed_age_band()  # 42 ± round(42*0.15)=6 -> (36, 48)
-    assert (low, high) == (36, 48)
+    low, high = PROFILE.fuzzed_age_band()  # 47 ± round(47*0.10)=5 -> (42, 52)
+    assert (low, high) == (42, 52)
     assert PROFILE.age_years not in (low, high)
     assert low < PROFILE.age_years < high
 
@@ -73,16 +78,26 @@ def test_fuzzed_age_band_randomised_shifts_centre_within_bounds():
     bands = {PROFILE.fuzzed_age_band(rng=random.Random(s)) for s in range(50)}
     assert len(bands) > 1  # random centre shift produces varied bands
     for low, high in bands:
-        assert high - low == 12  # width stays 2*half (=12)
+        assert high - low == 10  # width stays 2*half (=10)
 
 
-def test_prompt_includes_sex_and_fuzzed_age_band_not_exact_age():
+def test_fuzzed_age_randomized_single_number_excludes_exact_age():
+    ages = {PROFILE.fuzzed_age(rng=random.Random(s)) for s in range(50)}
+    assert len(ages) > 1  # randomization samples varied fuzzed ages
+    assert PROFILE.age_years not in ages  # exact age 47 is never emitted
+    for a in ages:
+        assert 42 <= a <= 52
+
+
+def test_prompt_includes_sex_and_fuzzed_age_not_exact_age():
     prompt = build_nutrition_prompt(SERIES, PROFILE)
     assert "Male" in prompt
-    assert "age band ~36-48" in prompt
+    assert "approx. age" in prompt
+    assert "target body fat 15.0%" in prompt
+    assert "not below healthy limit of 10.0%" in prompt
     assert "fuzzed" in prompt
     # The exact age must never appear as a standalone token.
-    assert not re.search(r"(?<!\d)42(?!\d)", prompt)
+    assert not re.search(r"(?<!\d)47(?!\d)", prompt)
 
 
 def test_prompt_without_profile_is_unchanged_and_omits_demographics():
@@ -113,3 +128,14 @@ def test_ask_nutrition_advice_wires_prompt_to_injected_model():
     # The model received the anonymized, fluctuation-aware prompt.
     assert "Net fluctuations" in captured["prompt"]
     assert not re.search(r"\d{4}-\d{2}-\d{2}", captured["prompt"])
+
+
+def test_build_daily_nutrition_prompt_emits_ultra_compact_stream():
+    from local_counsel.health_sync import build_daily_nutrition_prompt
+    prompt = build_daily_nutrition_prompt(SERIES, PROFILE)
+    assert "day,w_kg,bf_%,hyd_%,mus_kg" in prompt
+    assert "d0," in prompt  # latest reading relative day offset
+    assert "approx. age" in prompt
+    assert "target body fat 15.0%" in prompt
+    assert not re.search(r"\d{4}-\d{2}-\d{2}", prompt)
+

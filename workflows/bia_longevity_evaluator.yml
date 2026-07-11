@@ -1,0 +1,69 @@
+app:
+  description: Longevity Mentor BIA Body Composition Evaluator using Local Gemma and LocalCounsel Anonymization Tool
+  icon: 🧬
+  icon_background: '#E1F5FE'
+  mode: workflow
+  name: BIA Longevity Evaluator (Local Gemma)
+kind: app
+version: 0.1.0
+workflow:
+  features:
+    file_upload:
+      enabled: false
+  graph:
+    edges:
+      - id: start-to-fetch
+        source: start
+        target: fetch_anonymized_bia
+      - id: fetch-to-llm
+        source: fetch_anonymized_bia
+        target: longevity_gemma_llm
+      - id: llm-to-end
+        source: longevity_gemma_llm
+        target: end
+    nodes:
+      - id: start
+        data:
+          title: Start Evaluation
+          type: start
+          variables:
+            - label: Use Daily Resolution
+              type: select
+              options: ["true", "false"]
+              required: false
+              default: "true"
+      - id: fetch_anonymized_bia
+        data:
+          title: Fetch Anonymized BIA & Goals
+          type: tool
+          provider_id: localcounsel_bia_tool
+          tool_name: getAnonymizedBiaSummary
+          tool_parameters:
+            daily: "{{#start.Use Daily Resolution#}}"
+      - id: longevity_gemma_llm
+        data:
+          title: Longevity Mentor (Local Gemma)
+          type: llm
+          model:
+            provider: openai_api_compatible
+            name: gemma-4-E2B-it-Q4_K_M.gguf
+            completion_params:
+              temperature: 0.3
+              max_tokens: 1024
+          prompt_template:
+            - role: system
+              text: >
+                You are a longevity-focused nutrition educator.
+                {{#fetch_anonymized_bia.subject_line#}}
+                Evaluate the anonymized biometric trends and suggest actionable,
+                educational nutrition adjustments to help achieve the user's personal
+                body fat goals safely. Do not provide medical diagnosis.
+            - role: user
+              text: "{{#fetch_anonymized_bia.anonymized_prompt#}}"
+      - id: end
+        data:
+          title: Advisory Output
+          type: end
+          outputs:
+            - value_selector: ["longevity_gemma_llm", "text"]
+              variable: longevity_advice

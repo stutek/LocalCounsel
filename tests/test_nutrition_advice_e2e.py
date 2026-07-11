@@ -41,7 +41,10 @@ def test_bia_to_encrypted_openehr_to_nutrition_advice(tmp_path) -> None:
     #    both encrypted under the same key.
     with EncryptedOpenEhrStore.open("e2e-user", PASSPHRASE, base_dir=tmp_path) as store:
         store.put_secret(GOOGLE_HEALTH_API_KEY, "fake-oauth-token-xyz")
-        store.put_secret(PROFILE_KEY, json.dumps(SubjectProfile("Male", 42).as_dict()))
+        profile = SubjectProfile(
+            "Male", 47, target_body_fat_pct=15.0, min_healthy_body_fat_pct=10.0
+        )
+        store.put_secret(PROFILE_KEY, json.dumps(profile.as_dict()))
 
     # 1.-3. TRIGGER the sync: the passphrase gateway unlocks the store, the API
     # key is decrypted, then BIA data is retrieved, mapped, and stored encrypted.
@@ -65,8 +68,10 @@ def test_bia_to_encrypted_openehr_to_nutrition_advice(tmp_path) -> None:
     # 4. Build the anonymized prompt from the stored data + profile. Sex is
     #    included and the age is fuzzed to a band; no exact age or dates may leak.
     prompt = build_nutrition_prompt(restored, profile)
-    assert "Male" in prompt and "age band" in prompt
-    assert not re.search(r"(?<!\d)42(?!\d)", prompt)  # exact age never emitted
+    assert "Male" in prompt and "approx. age" in prompt
+    assert "target body fat 15.0%" in prompt
+    assert "not below healthy limit of 10.0%" in prompt
+    assert not re.search(r"(?<!\d)47(?!\d)", prompt)  # exact age never emitted
     assert not re.search(r"\d{4}-\d{2}-\d{2}", prompt)
     print("Anonymized nutrition prompt (from encrypted store):\n" + prompt)
 

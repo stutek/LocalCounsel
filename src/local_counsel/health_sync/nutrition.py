@@ -5,7 +5,7 @@ frontier model. It summarizes 12 months of body-composition *fluctuations*
 (weight, body fat, hydration, skeletal muscle) and renders a prompt that carries
 **no PII and no absolute dates** — timestamps become relative month offsets
 ("current", "-1 mo", ...) and, when a subject profile is supplied, the exact age
-becomes a ±15% fuzzed band, per the anonymization filter in
+becomes a ±10% fuzzed band, per the anonymization filter in
 ``docs/longevity-coach/health-integration-architecture.md`` §6.3.
 
 The pure functions here (:func:`summarize_fluctuations`, :func:`build_nutrition_prompt`)
@@ -24,7 +24,7 @@ from .mock_google import BiaMeasurement
 # Fraction of age used as the ±fuzz half-width, per the anonymization filter
 # (docs/longevity-coach/health-integration-architecture.md §6.3): exact age is never emitted, only
 # a fuzzed band, to resist database cross-matching re-identification.
-AGE_FUZZ_FRACTION = 0.15
+AGE_FUZZ_FRACTION = 0.10
 
 # Educational framing + human-oversight nudge, per the Safety Filtering requirement.
 _SYSTEM_FRAMING = (
@@ -41,12 +41,14 @@ class SubjectProfile:
     """Minimal demographic context for tailoring nutrition advice.
 
     Sex is passed through as-is (coarse, non-identifying at population scale); age
-    is **never** emitted exactly — :meth:`fuzzed_age_band` turns it into a ±15%
+    is **never** emitted exactly — :meth:`fuzzed_age_band` turns it into a ±10%
     band, per the anonymization filter (§6.3).
     """
 
     sex: str
     age_years: int
+    target_body_fat_pct: float | None = None
+    min_healthy_body_fat_pct: float | None = None
 
     def fuzzed_age_band(
         self, *, fraction: float = AGE_FUZZ_FRACTION, rng: random.Random | None = None
@@ -67,12 +69,44 @@ class SubjectProfile:
             centre += rng.randint(-half, half)
         return max(0, centre - half), centre + half
 
+    def fuzzed_age(
+        self, *, fraction: float = AGE_FUZZ_FRACTION, rng: random.Random | None = None
+    ) -> int:
+        """Return a single randomized fuzzed age within ±fraction around exact age.
+
+        Prevents midpoint inference and ensures exact age is never returned.
+        """
+        if self.age_years < 0:
+            raise ValueError("age_years must be non-negative")
+        half = max(1, round(self.age_years * fraction))
+        r = rng or random.Random()
+        candidates = [
+            a
+            for a in range(max(1, self.age_years - half), self.age_years + half + 1)
+            if a != self.age_years
+        ]
+        if not candidates:
+            return self.age_years + 1
+        return r.choice(candidates)
+
     def as_dict(self) -> dict[str, Any]:
-        return {"sex": self.sex, "age_years": self.age_years}
+        data: dict[str, Any] = {"sex": self.sex, "age_years": self.age_years}
+        if self.target_body_fat_pct is not None:
+            data["target_body_fat_pct"] = self.target_body_fat_pct
+        if self.min_healthy_body_fat_pct is not None:
+            data["min_healthy_body_fat_pct"] = self.min_healthy_body_fat_pct
+        return data
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "SubjectProfile":
-        return cls(sex=str(data["sex"]), age_years=int(data["age_years"]))
+        target = float(data["target_body_fat_pct"]) if data.get("target_body_fat_pct") is not None else None
+        min_bf = float(data["min_healthy_body_fat_pct"]) if data.get("min_healthy_body_fat_pct") is not None else None
+        return cls(
+            sex=str(data["sex"]),
+            age_years=int(data["age_years"]),
+            target_body_fat_pct=target,
+            min_healthy_body_fat_pct=min_bf,
+        )
 
 
 @dataclass(frozen=True)
@@ -106,30 +140,38 @@ class MetricFluctuation:
 
 @dataclass(frozen=True)
 class FluctuationSummary:
-    """Aggregate view of the series: per-metric fluctuations + reading count."""
+    """Aggregate view of the series: per-metric fluctuations + reading count.
+
+    Metrics absent from the source data (e.g. hydration/muscle in a real Beurer
+    export that only has weight + body fat) are ``None`` and skipped everywhere.
+    """
 
     months: int
-    weight: MetricFluctuation
-    body_fat: MetricFluctuation
-    hydration: MetricFluctuation
-    muscle: MetricFluctuation
+    weight: MetricFluctuation | None
+    body_fat: MetricFluctuation | None
+    hydration: MetricFluctuation | None
+    muscle: MetricFluctuation | None
 
     def metrics(self) -> list[MetricFluctuation]:
-        return [self.weight, self.body_fat, self.hydration, self.muscle]
+        return [m for m in (self.weight, self.body_fat, self.hydration, self.muscle) if m]
 
 
 def _metric(
     label: str,
     unit: str,
-    values: Sequence[float],
-) -> MetricFluctuation:
+    values: Sequence[float | None],
+) -> MetricFluctuation | None:
+    """Summarize a metric, using only the readings that carry it (``None`` if none)."""
+    present = [v for v in values if v is not None]
+    if not present:
+        return None
     return MetricFluctuation(
         label=label,
         unit=unit,
-        start=round(values[0], 2),
-        end=round(values[-1], 2),
-        minimum=round(min(values), 2),
-        maximum=round(max(values), 2),
+        start=round(present[0], 2),
+        end=round(present[-1], 2),
+        minimum=round(min(present), 2),
+        maximum=round(max(present), 2),
     )
 
 
@@ -154,8 +196,15 @@ def _relative_label(index: int, total: int) -> str:
 
 
 def _subject_line(profile: SubjectProfile, rng: random.Random | None) -> str:
-    low, high = profile.fuzzed_age_band(rng=rng)
-    return f"Subject: {profile.sex}, age band ~{low}-{high} (exact age fuzzed ±15% for privacy)."
+    approx_age = profile.fuzzed_age(rng=rng)
+    base = f"Subject: {profile.sex}, approx. age {approx_age} (exact age fuzzed ±10% for privacy)."
+    if profile.target_body_fat_pct is not None:
+        goal_msg = f" Goal: target body fat {profile.target_body_fat_pct}%"
+        if profile.min_healthy_body_fat_pct is not None:
+            goal_msg += f" (not below healthy limit of {profile.min_healthy_body_fat_pct}%)"
+        goal_msg += "."
+        base += goal_msg
+    return base
 
 
 def build_nutrition_prompt(
@@ -179,11 +228,25 @@ def build_nutrition_prompt(
         for m in summary.metrics()
     ]
 
-    # Compact per-reading table using relative offsets only (no dates).
-    table_header = "month | weight_kg | body_fat_% | hydration_% | muscle_kg"
+    # Compact per-reading table using relative offsets only (no dates). Columns
+    # adapt to which metrics the data actually carries (sparse real exports have
+    # only weight + body fat).
+    columns: list[tuple[str, str]] = []
+    if summary.weight:
+        columns.append(("weight_kg", "weight_kg"))
+    if summary.body_fat:
+        columns.append(("body_fat_%", "body_fat_pct"))
+    if summary.hydration:
+        columns.append(("hydration_%", "body_water_pct"))
+    if summary.muscle:
+        columns.append(("muscle_kg", "skeletal_muscle_mass_kg"))
+
+    table_header = "month | " + " | ".join(h for h, _ in columns)
     table_rows = [
         f"{_relative_label(i, summary.months)} | "
-        f"{m.weight_kg} | {m.body_fat_pct} | {m.body_water_pct} | {m.skeletal_muscle_mass_kg}"
+        + " | ".join(
+            (lambda v: "-" if v is None else str(v))(getattr(m, attr)) for _, attr in columns
+        )
         for i, m in enumerate(series)
     ]
 
@@ -219,3 +282,47 @@ def ask_nutrition_advice(
 
     prompt = build_nutrition_prompt(series, profile)
     return ask(prompt)
+
+
+def build_daily_nutrition_prompt(
+    series: Sequence[BiaMeasurement],
+    profile: SubjectProfile | None = None,
+    *,
+    rng: random.Random | None = None,
+) -> str:
+    """Render an ultra-compact daily BIA prompt without monthly aggregation.
+
+    Converts calendar dates to relative day offsets (d0 = latest reading) and
+    formats rows compactly to fit hundreds of daily readings within token budgets.
+    """
+    if not series:
+        raise ValueError("series must not be empty")
+
+    sorted_series = sorted(series, key=lambda m: m.measured_at)
+    latest_dt = sorted_series[-1].measured_at
+
+    rows = []
+    for m in sorted_series:
+        day_offset = (m.measured_at.date() - latest_dt.date()).days
+        day_label = f"d{day_offset}"
+        rows.append(
+            f"{day_label},{m.weight_kg},{m.body_fat_pct},{m.body_water_pct},{m.skeletal_muscle_mass_kg}"
+        )
+
+    first, last = sorted_series[0], sorted_series[-1]
+    net_w = round(last.weight_kg - first.weight_kg, 2)
+    net_bf = round(last.body_fat_pct - first.body_fat_pct, 2)
+
+    subject = f"{_subject_line(profile, rng)}\n" if profile is not None else ""
+
+    return (
+        f"{_SYSTEM_FRAMING}\n\n"
+        f"{subject}"
+        f"Window: {len(sorted_series)} daily readings (compact format: day_offset,weight_kg,body_fat_pct,hydration_pct,muscle_kg).\n"
+        f"Net change: weight {net_w:+} kg, body fat {net_bf:+} %.\n\n"
+        "Daily readings (oldest first):\n"
+        "day,w_kg,bf_%,hyd_%,mus_kg\n"
+        + "\n".join(rows)
+        + "\n\nQuestion: What educational nutrition adjustments do these daily "
+        "weight, body-fat, hydration, and muscle fluctuations suggest?"
+    )

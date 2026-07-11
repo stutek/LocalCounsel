@@ -1,0 +1,86 @@
+{
+  "description": "Anonymized 7-month Beurer HealthManager BIA body composition series for testing local Longevity Mentor (Gemma / Dify.ai) evaluations. Completely stripped of PII and calendar dates.",
+  "subject_profile_fuzzed": {
+    "sex": "Male",
+    "fuzzed_age_band": "~38-46"
+  },
+  "readings": [
+    {
+      "relative_month": "-6 mo",
+      "weight_kg": 71.77,
+      "bmi": 22.7,
+      "body_fat_pct": 17.49,
+      "skeletal_muscle_mass_kg": 32.57,
+      "body_water_pct": 56.50,
+      "bone_mass_kg": 3.2,
+      "basal_metabolic_rate_kcal": 1612.4,
+      "visceral_fat_rating": 7
+    },
+    {
+      "relative_month": "-5 mo",
+      "weight_kg": 71.47,
+      "bmi": 22.6,
+      "body_fat_pct": 17.38,
+      "skeletal_muscle_mass_kg": 32.48,
+      "body_water_pct": 56.52,
+      "bone_mass_kg": 3.2,
+      "basal_metabolic_rate_kcal": 1608.2,
+      "visceral_fat_rating": 7
+    },
+    {
+      "relative_month": "-4 mo",
+      "weight_kg": 71.28,
+      "bmi": 22.5,
+      "body_fat_pct": 17.29,
+      "skeletal_muscle_mass_kg": 32.43,
+      "body_water_pct": 56.54,
+      "bone_mass_kg": 3.2,
+      "basal_metabolic_rate_kcal": 1605.1,
+      "visceral_fat_rating": 7
+    },
+    {
+      "relative_month": "-3 mo",
+      "weight_kg": 71.04,
+      "bmi": 22.4,
+      "body_fat_pct": 17.43,
+      "skeletal_muscle_mass_kg": 32.26,
+      "body_water_pct": 56.51,
+      "bone_mass_kg": 3.2,
+      "basal_metabolic_rate_kcal": 1601.5,
+      "visceral_fat_rating": 7
+    },
+    {
+      "relative_month": "-2 mo",
+      "weight_kg": 71.99,
+      "bmi": 22.7,
+      "body_fat_pct": 18.10,
+      "skeletal_muscle_mass_kg": 32.43,
+      "body_water_pct": 56.38,
+      "bone_mass_kg": 3.2,
+      "basal_metabolic_rate_kcal": 1615.8,
+      "visceral_fat_rating": 7
+    },
+    {
+      "relative_month": "-1 mo",
+      "weight_kg": 71.25,
+      "bmi": 22.5,
+      "body_fat_pct": 17.35,
+      "skeletal_muscle_mass_kg": 32.39,
+      "body_water_pct": 56.53,
+      "bone_mass_kg": 3.2,
+      "basal_metabolic_rate_kcal": 1604.8,
+      "visceral_fat_rating": 7
+    },
+    {
+      "relative_month": "current",
+      "weight_kg": 71.34,
+      "bmi": 22.5,
+      "body_fat_pct": 17.40,
+      "skeletal_muscle_mass_kg": 32.41,
+      "body_water_pct": 56.52,
+      "bone_mass_kg": 3.2,
+      "basal_metabolic_rate_kcal": 1606.0,
+      "visceral_fat_rating": 7
+    }
+  ]
+}

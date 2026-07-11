@@ -19,20 +19,27 @@ from .nutrition import (
     MetricFluctuation,
     SubjectProfile,
     ask_nutrition_advice,
+    build_daily_nutrition_prompt,
     build_nutrition_prompt,
     summarize_fluctuations,
 )
+from .dify_tool_server import DifyBiaToolHandler, generate_dify_bia_payload
+from .takeout import parse_takeout_zip
 from .sync import GOOGLE_HEALTH_API_KEY, MissingCredentialError, trigger_bia_sync
 
 __all__ = [
     "BiaMeasurement",
     "MockGoogleHealthConnector",
     "generate_bia_series",
+    "parse_takeout_zip",
     "FluctuationSummary",
     "MetricFluctuation",
     "SubjectProfile",
     "ask_nutrition_advice",
+    "build_daily_nutrition_prompt",
     "build_nutrition_prompt",
+    "generate_dify_bia_payload",
+    "DifyBiaToolHandler",
     "summarize_fluctuations",
     "trigger_bia_sync",
     "MissingCredentialError",

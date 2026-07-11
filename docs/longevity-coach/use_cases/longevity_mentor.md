@@ -27,7 +27,7 @@ Processing runs locally by default (GDPR / medical privacy), and raw, identifiab
 ## 3. Specific Compliance & Safety Checks
 - Verify health guidelines: Cross-reference recommendations with safe athletic/metabolic guidelines.
 - openEHR Schema Integrity: Ensure ingested Google Health data formats map correctly to openEHR templates and archetypes without loss of clinical context.
-- Privacy & Anonymization Constraints: The local anonymization layer must completely strip all PII before sending data to external APIs. To prevent age-matching re-identification, the subject's exact age must be dynamically anonymized with a +/- 15% fuzzing offset before transmission.
+- Privacy & Anonymization Constraints: The local anonymization layer must completely strip all PII before sending data to external APIs. To prevent age-matching re-identification, the subject's exact age must be dynamically anonymized with a +/- 10% fuzzing offset before transmission.
 - Flag high-risk suggestions: Explicitly require human medical review for any warnings related to medications, chronic conditions, or extreme supplementation.
 - Mark all output clearly as "AI-generated educational guidance, not medical advice" (EU AI Act transparency and medical liability safeguards).
 

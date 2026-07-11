@@ -54,9 +54,30 @@ def bia_to_composition(
     subject_id: str = "local-user",
     vendor: str = "bia-scale",
 ) -> dict[str, Any]:
-    """Translate one BIA reading into a canonical openEHR composition dict."""
+    """Translate one BIA reading into a canonical openEHR composition dict.
+
+    Only the measurements actually present are emitted as elements — a sparse real
+    export (weight + body fat) yields a smaller composition than a full BIA panel.
+    """
     source_id = bia_source_id(measurement, vendor=vendor)
     effective_time = measurement.measured_at.isoformat()
+
+    # (archetype, name, value, units) — value None means "absent, skip".
+    specs: list[tuple[str, str, float | None, str]] = [
+        ("openEHR-EHR-OBSERVATION.body_weight.v2", "Body weight", measurement.weight_kg, "kg"),
+        ("openEHR-EHR-OBSERVATION.body_mass_index.v2", "Body mass index", measurement.bmi, "kg/m2"),
+        ("openEHR-EHR-OBSERVATION.body_composition.v0#body_fat", "Body fat percentage", measurement.body_fat_pct, "%"),
+        ("openEHR-EHR-OBSERVATION.body_composition.v0#skeletal_muscle", "Skeletal muscle mass", measurement.skeletal_muscle_mass_kg, "kg"),
+        ("openEHR-EHR-OBSERVATION.body_composition.v0#body_water", "Total body water percentage", measurement.body_water_pct, "%"),
+        ("openEHR-EHR-OBSERVATION.body_composition.v0#bone_mass", "Bone mass", measurement.bone_mass_kg, "kg"),
+        ("openEHR-EHR-OBSERVATION.basal_metabolic_rate.v0", "Basal metabolic rate", measurement.basal_metabolic_rate_kcal, "kcal/d"),
+        (
+            "openEHR-EHR-OBSERVATION.body_composition.v0#visceral_fat",
+            "Visceral fat rating",
+            None if measurement.visceral_fat_rating is None else float(measurement.visceral_fat_rating),
+            "1",
+        ),
+    ]
 
     return {
         "uid": composition_uid(source_id),
@@ -65,56 +86,7 @@ def bia_to_composition(
         "source_id": source_id,
         "composer": {"subject_id": subject_id, "vendor": vendor},
         "context": {"start_time": effective_time},
-        "content": [
-            _element(
-                "openEHR-EHR-OBSERVATION.body_weight.v2",
-                "Body weight",
-                measurement.weight_kg,
-                "kg",
-            ),
-            _element(
-                "openEHR-EHR-OBSERVATION.body_mass_index.v2",
-                "Body mass index",
-                measurement.bmi,
-                "kg/m2",
-            ),
-            _element(
-                "openEHR-EHR-OBSERVATION.body_composition.v0#body_fat",
-                "Body fat percentage",
-                measurement.body_fat_pct,
-                "%",
-            ),
-            _element(
-                "openEHR-EHR-OBSERVATION.body_composition.v0#skeletal_muscle",
-                "Skeletal muscle mass",
-                measurement.skeletal_muscle_mass_kg,
-                "kg",
-            ),
-            _element(
-                "openEHR-EHR-OBSERVATION.body_composition.v0#body_water",
-                "Total body water percentage",
-                measurement.body_water_pct,
-                "%",
-            ),
-            _element(
-                "openEHR-EHR-OBSERVATION.body_composition.v0#bone_mass",
-                "Bone mass",
-                measurement.bone_mass_kg,
-                "kg",
-            ),
-            _element(
-                "openEHR-EHR-OBSERVATION.basal_metabolic_rate.v0",
-                "Basal metabolic rate",
-                measurement.basal_metabolic_rate_kcal,
-                "kcal/d",
-            ),
-            _element(
-                "openEHR-EHR-OBSERVATION.body_composition.v0#visceral_fat",
-                "Visceral fat rating",
-                float(measurement.visceral_fat_rating),
-                "1",
-            ),
-        ],
+        "content": [_element(a, n, v, u) for a, n, v, u in specs if v is not None],
     }
 
 
@@ -126,14 +98,15 @@ def composition_to_measurement(composition: dict[str, Any]) -> BiaMeasurement:
     """
     by_node = {el["archetype_node_id"]: el["value"]["magnitude"] for el in composition["content"]}
     measured_at = datetime.fromisoformat(composition["context"]["start_time"])
+    visceral = by_node.get("openEHR-EHR-OBSERVATION.body_composition.v0#visceral_fat")
     return BiaMeasurement(
         measured_at=measured_at,
         weight_kg=by_node["openEHR-EHR-OBSERVATION.body_weight.v2"],
-        bmi=by_node["openEHR-EHR-OBSERVATION.body_mass_index.v2"],
-        body_fat_pct=by_node["openEHR-EHR-OBSERVATION.body_composition.v0#body_fat"],
-        skeletal_muscle_mass_kg=by_node["openEHR-EHR-OBSERVATION.body_composition.v0#skeletal_muscle"],
-        body_water_pct=by_node["openEHR-EHR-OBSERVATION.body_composition.v0#body_water"],
-        bone_mass_kg=by_node["openEHR-EHR-OBSERVATION.body_composition.v0#bone_mass"],
-        basal_metabolic_rate_kcal=by_node["openEHR-EHR-OBSERVATION.basal_metabolic_rate.v0"],
-        visceral_fat_rating=int(by_node["openEHR-EHR-OBSERVATION.body_composition.v0#visceral_fat"]),
+        bmi=by_node.get("openEHR-EHR-OBSERVATION.body_mass_index.v2"),
+        body_fat_pct=by_node.get("openEHR-EHR-OBSERVATION.body_composition.v0#body_fat"),
+        skeletal_muscle_mass_kg=by_node.get("openEHR-EHR-OBSERVATION.body_composition.v0#skeletal_muscle"),
+        body_water_pct=by_node.get("openEHR-EHR-OBSERVATION.body_composition.v0#body_water"),
+        bone_mass_kg=by_node.get("openEHR-EHR-OBSERVATION.body_composition.v0#bone_mass"),
+        basal_metabolic_rate_kcal=by_node.get("openEHR-EHR-OBSERVATION.basal_metabolic_rate.v0"),
+        visceral_fat_rating=None if visceral is None else int(visceral),
     )

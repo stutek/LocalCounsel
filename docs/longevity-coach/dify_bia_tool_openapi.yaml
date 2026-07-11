@@ -1,0 +1,43 @@
+openapi: 3.0.3
+info:
+  title: LocalCounsel BIA Anonymization & Goal Injector Tool
+  description: >
+    Custom Dify Tool that reads local body composition (BIA) measurements,
+    anonymizes demographic data (single randomized age within ±10%), scrubs
+    calendar dates into relative day/month offsets, and injects user personal
+    goals (target body fat 15.0%, lower healthy limit 10.0%).
+  version: 0.1.0
+servers:
+  - url: http://host.docker.internal:8088
+    description: LocalCounsel host loopback server accessible from Dify Docker containers
+paths:
+  /v1/bia/summary:
+    get:
+      summary: Get pre-anonymized BIA series prompt payload
+      operationId: getAnonymizedBiaSummary
+      parameters:
+        - name: daily
+          in: query
+          description: If true, returns ultra-compact daily delta stream instead of monthly summary.
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Successful retrieval of anonymized BIA payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  anonymized_prompt:
+                    type: string
+                    description: Ready-to-evaluate prompt with relative dates and no PII.
+                  subject_line:
+                    type: string
+                    description: Fuzzed demographic line with personal goals.
+                  reading_count:
+                    type: integer
+                  format:
+                    type: string

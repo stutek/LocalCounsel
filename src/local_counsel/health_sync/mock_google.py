@@ -52,15 +52,18 @@ class BiaMeasurement:
     weight and height rather than measured, matching how the scale apps compute it.
     """
 
+    # Only ``measured_at`` and ``weight_kg`` are guaranteed. Real Google Health /
+    # Beurer (HealthManager Pro) exports carry just weight + body fat %, so every
+    # richer BIA field is optional and may be ``None``.
     measured_at: datetime
     weight_kg: float
-    bmi: float
-    body_fat_pct: float
-    skeletal_muscle_mass_kg: float
-    body_water_pct: float
-    bone_mass_kg: float
-    basal_metabolic_rate_kcal: float
-    visceral_fat_rating: int
+    body_fat_pct: float | None = None
+    bmi: float | None = None
+    skeletal_muscle_mass_kg: float | None = None
+    body_water_pct: float | None = None
+    bone_mass_kg: float | None = None
+    basal_metabolic_rate_kcal: float | None = None
+    visceral_fat_rating: int | None = None
 
 
 def _round(value: float, ndigits: int = 1) -> float:

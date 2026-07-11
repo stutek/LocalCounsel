@@ -143,8 +143,8 @@ flowchart LR
 * **Per-user isolation** — each user has a separate database file; there is no
   multi-tenant table sharing.
 * **Anonymized egress** — the only data that can leave the machine (the AI prompt)
-  carries relative month offsets, biometric numbers, sex, and a ±15% **fuzzed age
-  band** — never dates, exact age, or other PII.
+  carries relative month offsets, biometric numbers, sex, and a **single randomized
+  ±10% fuzzed age** — never dates, the exact age, or other PII.
 
 See [Architecture — Google Health to openEHR Sync](/docs/longevity-coach/health-integration-architecture.md)
 for the broader system design and the storage/encryption rationale.
