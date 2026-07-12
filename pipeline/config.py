@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import platform
+import subprocess
 from pathlib import Path
 
 # --------------------------------------------------------------------------- #
@@ -119,7 +120,36 @@ DIFY_SHA256 = env("LC_DIFY_SHA256", _DIFY_SHA256_DEFAULT) or None
 # --------------------------------------------------------------------------- #
 # Server bind address                                                           #
 # --------------------------------------------------------------------------- #
-HOST = env("LC_LLM_HOST", "0.0.0.0")
+def _default_llm_host() -> str:
+    """Choose a secure bind address for llama-server.
+
+    Uses LC_LLM_HOST if explicitly configured. Otherwise:
+    - If Docker bridge interface (docker0) is active, bind to its private bridge
+      gateway IP (e.g., 172.17.0.1) so Dify containers can reach the host model
+      without exposing port 8080 to physical LAN/Wi-Fi interfaces.
+    - Otherwise, bind strictly to loopback 127.0.0.1.
+    """
+    override = env("LC_LLM_HOST", "")
+    if override:
+        return override
+    try:
+        out = subprocess.check_output(
+            ["ip", "-4", "addr", "show", "docker0"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+        for line in out.splitlines():
+            line = line.strip()
+            if line.startswith("inet "):
+                ip = line.split()[1].split("/")[0]
+                if ip:
+                    return ip
+    except Exception:
+        pass
+    return "127.0.0.1"
+
+
+HOST = _default_llm_host()
 PORT = int(env("LC_LLM_PORT", "8080"))
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -189,6 +190,10 @@ def boot_dify(log_stamp: str | None = None) -> None:
         patched = content.replace("TEXT_GENERATION_TIMEOUT_MS=60000\n", "TEXT_GENERATION_TIMEOUT_MS=600000\n")
         patched = patched.replace("GUNICORN_TIMEOUT=360\n", "GUNICORN_TIMEOUT=600\n")
         patched = patched.replace("API_WEBSOCKET_GUNICORN_TIMEOUT=360\n", "API_WEBSOCKET_GUNICORN_TIMEOUT=600\n")
+        if "EXPOSE_NGINX_PORT=" in patched:
+            patched = re.sub(r"^EXPOSE_NGINX_PORT=.*$", "EXPOSE_NGINX_PORT=127.0.0.1:80", patched, flags=re.MULTILINE)
+        else:
+            patched += "\nEXPOSE_NGINX_PORT=127.0.0.1:80\n"
         if patched != content:
             env_file.write_text(patched, encoding="utf-8")
 
