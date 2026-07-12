@@ -75,7 +75,7 @@ def boot_llm(log_stamp: str | None = None) -> None:
     env = {**os.environ, "LD_LIBRARY_PATH": str(server.parent)}
 
     proc = subprocess.Popen(
-        [str(server), "-m", str(MODEL_FILE), "--host", HOST, "--port", str(PORT)],
+        [str(server), "-m", str(MODEL_FILE), "--host", HOST, "--port", str(PORT), "-c", "4096", "-np", "1"],
         cwd=str(server.parent),
         env=env,
         stdout=logf,
@@ -136,6 +136,38 @@ def _docker_compose_cmd() -> list[str] | None:
     return None
 
 
+def _check_docker_permissions(cmd: list[str]) -> None:
+    """Verify Docker daemon socket access before attempting docker compose."""
+    res = subprocess.run(cmd[:1] + ["ps"], capture_output=True, text=True, check=False)
+    if res.returncode != 0 and "permission denied" in (res.stderr + res.stdout).lower():
+        raise SystemExit(
+            "✗ Permission denied connecting to Docker daemon socket (/var/run/docker.sock).\n\n"
+            "  To fix this immediately for your current session, run:\n"
+            "      sudo chmod 666 /var/run/docker.sock\n\n"
+            "  Or permanently add your user to the docker group:\n"
+            "      sudo usermod -aG docker $USER && newgrp docker\n"
+        )
+
+
+def run_docker_compose(args: list[str], cwd: Path) -> subprocess.CompletedProcess:
+    """Run docker compose with automatic group fallback ('sg docker') if needed."""
+    base = _docker_compose_cmd()
+    if base is None:
+        raise SystemExit("Docker Compose is required to run Dify. Please install Docker and Docker Compose.")
+
+    res_ps = subprocess.run(base[:1] + ["ps"], capture_output=True, text=True, check=False)
+    if res_ps.returncode == 0:
+        return subprocess.run(base + args, cwd=str(cwd), check=False)
+
+    # Automatically run under 'docker' group if user is a member but session hasn't reloaded groups yet
+    if shutil.which("sg") and subprocess.run(["sg", "docker", "-c", "docker ps"], capture_output=True).returncode == 0:
+        cmd_str = " ".join(base + args)
+        return subprocess.run(["sg", "docker", "-c", cmd_str], cwd=str(cwd), check=False)
+
+    _check_docker_permissions(base)
+    return subprocess.run(base + args, cwd=str(cwd), check=False)
+
+
 def boot_dify(log_stamp: str | None = None) -> None:
     """Boot Dify stack via Docker Compose (boots local LLM first if needed)."""
     require_supported_platform()
@@ -146,21 +178,28 @@ def boot_dify(log_stamp: str | None = None) -> None:
     if docker_dir is None:
         raise SystemExit("Dify docker directory not found after provisioning!")
 
-    cmd = _docker_compose_cmd()
-    if cmd is None:
-        raise SystemExit("Docker Compose is required to run Dify. Please install Docker and Docker Compose.")
-
     env_file = docker_dir / ".env"
     env_example = docker_dir / ".env.example"
     if not env_file.exists() and env_example.exists():
         print(f"Creating Dify .env from {env_example} ...")
         shutil.copy(env_example, env_file)
 
+    if env_file.exists():
+        content = env_file.read_text(encoding="utf-8")
+        patched = content.replace("TEXT_GENERATION_TIMEOUT_MS=60000\n", "TEXT_GENERATION_TIMEOUT_MS=600000\n")
+        patched = patched.replace("GUNICORN_TIMEOUT=360\n", "GUNICORN_TIMEOUT=600\n")
+        patched = patched.replace("API_WEBSOCKET_GUNICORN_TIMEOUT=360\n", "API_WEBSOCKET_GUNICORN_TIMEOUT=600\n")
+        if patched != content:
+            env_file.write_text(patched, encoding="utf-8")
+
     print("Booting Dify stack via Docker Compose ...")
-    res = subprocess.run(cmd + ["up", "-d"], cwd=str(docker_dir), check=False)
+    res = run_docker_compose(["up", "-d"], cwd=docker_dir)
     if res.returncode != 0:
         raise SystemExit(f"✗ Failed to start Dify (docker compose exited with code {res.returncode}).")
-    print("\n✅ Dify stack is online! Access the UI at http://localhost/")
+    run_docker_compose(["restart", "nginx"], cwd=docker_dir)
+    from .dify_setup import setup_dify
+    url = setup_dify()
+    print(f"\n✅ Dify stack is online! Longevity Mentor chat URL: {url}")
 
 
 def stop_dify() -> None:
@@ -171,11 +210,6 @@ def stop_dify() -> None:
         print("Dify is not provisioned or extracted; nothing to stop.")
         return
 
-    cmd = _docker_compose_cmd()
-    if cmd is None:
-        print("Docker Compose not found; cannot stop Dify containers.")
-        return
-
     print("🛑 Stopping Dify Docker Compose stack ...")
-    subprocess.run(cmd + ["down"], cwd=str(docker_dir), check=False)
+    run_docker_compose(["down"], cwd=docker_dir)
     print("🧹 Dify resources cleaned up.")

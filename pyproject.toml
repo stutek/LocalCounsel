@@ -19,8 +19,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=8.0"]
+test = ["pytest>=8.0", "pytest-xdist>=3.5"]
 dev = ["nox>=2024.0"]
+# Browser-driven end-to-end demos (tests/end-to-end), run via `nox -s demo`.
+demo = ["pytest>=8.0", "pytest-xdist>=3.5", "playwright>=1.40", "pytest-playwright>=0.5"]
 
 [project.scripts]
 local-counsel = "local_counsel.assistant:main"

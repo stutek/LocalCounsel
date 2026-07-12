@@ -105,7 +105,7 @@ graph TD
 ## 4. Actionable Implementation Backlog (TODO)
 
 ### Phase 1: Local Networking & Server Provisioning
-- [ ] **TASK-1.1**: Update `pipeline/server.py` to support binding `llama-server` to host IP `0.0.0.0` (or Docker bridge IP) when Dify orchestration mode is enabled (`LC_SERVER_HOST`).
+- [x] **TASK-1.1**: Update `pipeline/server.py` to support binding `llama-server` to host IP `0.0.0.0` (or Docker bridge IP) when Dify orchestration mode is enabled (`LC_SERVER_HOST`).
 - [ ] **TASK-1.2**: Update `pipeline/provisioning.py` and `noxfile.py` (`nox -s boot-dify`) to verify Dify container status and check network connectivity between `dify-api` container and `http://host.docker.internal:8080/health`.
 
 ### Phase 2: Dify Model Provider Automated Initialization

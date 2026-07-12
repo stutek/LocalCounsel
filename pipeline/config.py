@@ -51,8 +51,14 @@ def get_llama_defaults() -> tuple[str, str]:
 
 def get_anythingllm_defaults() -> tuple[str, str]:
     if platform.system().lower() == "darwin":
-        return "https://cdn.anythingllm.com/latest/AnythingLLMDesktop.dmg", "AnythingLLMDesktop.dmg"
-    return "https://cdn.anythingllm.com/latest/AnythingLLMDesktop.AppImage", "AnythingLLMDesktop.AppImage"
+        return (
+            "https://github.com/Mintplex-Labs/anything-llm/releases/download/v1.15.0/AnythingLLMDesktop.dmg",
+            "AnythingLLMDesktop.dmg",
+        )
+    return (
+        "https://github.com/Mintplex-Labs/anything-llm/releases/download/v1.15.0/AnythingLLMDesktop.AppImage",
+        "AnythingLLMDesktop.AppImage",
+    )
 
 
 def get_dify_defaults() -> tuple[str, str]:
@@ -67,7 +73,7 @@ _dify_url_default, _dify_name_default = get_dify_defaults()
 # Artifacts (env-overridable)                                                   #
 # --------------------------------------------------------------------------- #
 MODEL_URL_DEFAULT = (
-    "https://huggingface.co/bartowski/google_gemma-4-E2B-it-GGUF/resolve/main/google_gemma-4-E2B-it-Q4_K_M.gguf"
+    "https://huggingface.co/bartowski/google_gemma-4-E2B-it-GGUF/resolve/b5e99bd964eaacc27ba484bb2eb3e9f6160b9143/google_gemma-4-E2B-it-Q4_K_M.gguf"
 )
 MODEL_URL = env("LC_MODEL_URL", MODEL_URL_DEFAULT)
 MODEL_FILE = DOWNLOADS / env("LC_MODEL_FILE", MODEL_URL.rsplit("/", 1)[-1])
@@ -107,12 +113,13 @@ _DIFY_SHA256_DEFAULT = (
 )
 MODEL_SHA256 = env("LC_MODEL_SHA256", _MODEL_SHA256_DEFAULT) or None
 LLAMA_SHA256 = env("LC_LLAMA_SHA256", _LLAMA_SHA256_DEFAULT) or None
+ANYTHINGLLM_SHA256 = env("LC_ANYTHINGLLM_SHA256", "") or None
 DIFY_SHA256 = env("LC_DIFY_SHA256", _DIFY_SHA256_DEFAULT) or None
 
 # --------------------------------------------------------------------------- #
 # Server bind address                                                           #
 # --------------------------------------------------------------------------- #
-HOST = env("LC_LLM_HOST", "127.0.0.1")
+HOST = env("LC_LLM_HOST", "0.0.0.0")
 PORT = int(env("LC_LLM_PORT", "8080"))
 
 

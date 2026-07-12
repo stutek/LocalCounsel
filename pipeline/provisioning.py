@@ -8,8 +8,6 @@ import urllib.request
 from pathlib import Path
 
 from .config import (
-    ANYTHINGLLM_APP,
-    ANYTHINGLLM_URL,
     DIFY_DIR,
     DIFY_SHA256,
     DIFY_TAR,
@@ -167,12 +165,5 @@ def provision() -> None:
     download(MODEL_URL, MODEL_FILE, sha256=MODEL_SHA256)
     download(LLAMA_URL, LLAMA_TAR, sha256=LLAMA_SHA256)
     extract_llama()
-    # AnythingLLM ships only from a mutable "latest" CDN path with no stable
-    # versioned URL, so we cannot pin a hash up front — use trust-on-first-use.
-    download(ANYTHINGLLM_URL, ANYTHINGLLM_APP, tofu=True)
-    try:
-        ANYTHINGLLM_APP.chmod(0o755)
-    except OSError:
-        pass
     download(DIFY_URL, DIFY_TAR, sha256=DIFY_SHA256, tofu=True)
     extract_dify()

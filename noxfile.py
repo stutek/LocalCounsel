@@ -41,6 +41,7 @@ import nox
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from pipeline.config import ANYTHINGLLM_APP, LOGS, REPORTS, ROOT
+from pipeline.dify_setup import setup_dify
 from pipeline.okf import check_okf, okf_concept_files
 from pipeline.provisioning import provision as pipeline_provision
 from pipeline.reporting import write_md_report
@@ -50,7 +51,7 @@ from pipeline.server import stop_dify as pipeline_stop_dify
 from pipeline.server import stop_llm as pipeline_stop_llm
 from pipeline.util import link_latest, safe_remove_dir, stamp
 
-nox.options.sessions = ["okf", "unit", "test"]
+nox.options.sessions = ["okf", "unit", "test", "e2e"]
 nox.options.reuse_existing_virtualenvs = True
 
 
@@ -133,6 +134,81 @@ def unit(session: nox.Session) -> None:
     session.run("pytest", "tests/unit")
 
 
+def _provision_demo_stack(session: nox.Session) -> None:
+    """Install deps + Chromium, and bring up the whole demo dependency chain.
+
+    The pipeline owns every dependency (Rule 4): local LLM, the Dify Docker stack,
+    and the provisioned Dify provider + Longevity Mentor app. Both end-to-end tests
+    run **through Dify** (Dify → local Gemma 4), so this is shared by `demo` + `e2e`.
+    Requires Docker.
+    """
+    session.install("-e", ".[demo]")
+    # Idempotent: downloads the Chromium build only if missing (Playwright's cache).
+    session.run("playwright", "install", "chromium")
+    pipeline_boot_dify()
+    setup_dify()  # registers local Gemma 4 provider + app; writes build/dify/*
+
+
+@nox.session
+def demo(session: nox.Session) -> None:
+    """Run browser-driven end-to-end demos (Playwright), headed + slowed.
+
+    Pick specific tests or enable debug/paused mode easily after ``--``:
+
+        nox -s demo                          # run all demos headed + slowmo
+        nox -s demo -- dify                  # run only test_dify_greeting_demo.py
+        nox -s demo -- nutrition             # run only test_nutrition_advice_demo.py
+        nox -s demo -- dify --debug          # run dify demo starting paused (--start-paused)
+        nox -s demo -- --pause               # drop into Playwright Inspector step-by-step
+    """
+    _provision_demo_stack(session)
+    posargs = list(session.posargs)
+
+    targets: list[str] = []
+    other_args: list[str] = []
+    for arg in posargs:
+        if arg in ("dify", "greeting"):
+            targets.append("tests/end-to-end/test_dify_greeting_demo.py")
+        elif arg in ("nutrition", "openehr"):
+            targets.append("tests/end-to-end/test_nutrition_advice_demo.py")
+        elif arg == "--debug":
+            other_args.append("--start-paused")
+        elif not arg.startswith("-n") and not arg.startswith("--numprocesses"):
+            other_args.append(arg)
+
+    if not targets and not any(a.startswith("tests/") or a.endswith(".py") for a in other_args):
+        targets = ["tests/end-to-end"]
+
+    args = [*targets, *other_args]
+    if "--headed" not in args and "--headless" not in args:
+        args.append("--headed")
+    if not any(a.startswith("--slowmo") for a in args):
+        args.extend(["--slowmo", "1200"])
+    if "-s" not in args and "--capture" not in args:
+        args.append("-s")
+    if "-p" not in args and "no:xdist" not in args:
+        args.extend(["-p", "no:xdist"])
+
+    session.run("pytest", *args)
+
+
+@nox.session
+def e2e(session: nox.Session) -> None:
+    """Final validation stage: run the end-to-end browser tests headless in parallel.
+
+    Same tests as ``nox -s demo`` but headless and parallelized across CPU cores
+    (via ``-n auto`` by default), serving as real pipeline validation (part of
+    the default ``nox`` run). Every end-to-end test runs **through the provisioned
+    Dify stack** — no skipping, no direct-to-model shortcut. Pass files/flags
+    after ``--``.
+    """
+    _provision_demo_stack(session)
+    args = list(session.posargs or ["tests/end-to-end"])
+    if not any(arg.startswith("-n") or arg.startswith("--numprocesses") for arg in args):
+        args = ["-n", "auto", *args]
+    session.run("pytest", *args)
+
+
 @nox.session
 def test(session: nox.Session) -> None:
     """Boot the LLM (if needed) and run the integration tests.
@@ -159,9 +235,12 @@ def test(session: nox.Session) -> None:
     # Stream pytest live to the terminal AND persist a full transcript via tee.
     # pipefail propagates pytest's exit code through the pipe; [0, 1] lets a test
     # failure through so the report is still written (Linux x64 target — bash assumed).
+    # The browser end-to-end tests run in the dedicated final `e2e` stage (below),
+    # which installs Playwright + Chromium. Skip them here to avoid double runs and
+    # so this stage needs no browser.
     session.run(
         "bash", "-c",
-        f"set -o pipefail; pytest --junitxml='{xml_path}' 2>&1 | tee '{pytest_log}'",
+        f"set -o pipefail; pytest --ignore=tests/end-to-end --junitxml='{xml_path}' 2>&1 | tee '{pytest_log}'",
         success_codes=[0, 1],
         external=True,
     )

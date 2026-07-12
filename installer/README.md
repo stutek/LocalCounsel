@@ -3,7 +3,7 @@ type: Installation Guide
 title: Installer Subproject
 description: How the build, provision, boot, test, and deployment pipeline is implemented with nox in the repository root.
 tags: [installer, pipeline, nox]
-timestamp: 2026-07-09T21:00:00+02:00
+timestamp: 2026-07-11T11:00:00+02:00
 ---
 
 # Installer Subproject
@@ -26,5 +26,7 @@ This pipeline automates and supports setup, execution, and verification for both
 | `stop_llm` | Stop the server and its child processes. | Cleans up the background `llama-server`. | Cleans up the background `llama-server`. |
 | `ui` | Launch the AnythingLLM desktop UI. | Provides a desktop chat workspace for documents. | Can be used as a local chat interface. |
 | `dify` / `boot_dify` | Launch the Dify workflow stack via Docker Compose. | Orchestrates document workflows, RAG, and audits. | Drives scheduled syncs, anonymizer filters, and chat. |
+| `e2e` | Final validation stage (default): browser end-to-end tests **through Dify**, headless. Provisions Dify + Gemma 4 (needs Docker). | — | Drives parse → encrypted openEHR → anonymize → Dify → Gemma 4 advice, and a Dify chat greeting, in a real browser. |
+| `demo` | The same E2E tests headed + slow-motion with on-screen narration (Play/Pause/Next), for live demos. | — | Human-paced walkthrough; per-file + `--slowmo`/`--takeout-zip`/`--manual` via `--`. |
 
 Run `nox -l` to list every session. For the full design and setup see the root [`README.md`](../README.md) and [`docs/core/ARCHITECTURE.md`](../docs/core/ARCHITECTURE.md).

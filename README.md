@@ -3,7 +3,7 @@ type: Project Overview
 title: LocalCounsel
 description: Local-first assistant supporting Erasmus+ compliance audits and privacy-preserving Longevity Mentor health-data coaching.
 tags: [overview, readme, compliance, local-first, longevity, health, erasmus-plus]
-timestamp: 2026-07-09T21:00:00+02:00
+timestamp: 2026-07-11T11:00:00+02:00
 ---
 
 # LocalCounsel
@@ -42,8 +42,9 @@ See [docs/core/ARCHITECTURE.md](docs/core/ARCHITECTURE.md) for the main system d
 - Linux x64 — the primary supported target (pinned llama.cpp binary + AnythingLLM
   AppImage). macOS (arm64/x64) download paths exist and are best-effort. Windows
   is currently **not supported** (stubbed).
-- **Docker + Docker Compose** — only for the self-hosted Dify.ai stack
-  (`nox -s dify`); not needed for the core assistant, tests, or CLI.
+- **Docker + Docker Compose** — for the self-hosted Dify.ai stack and the
+  end-to-end demo stage (`nox -s dify`, `demo`, `e2e`, all of which provision Dify);
+  not needed for `unit`, `run`, or the CLI.
 
 ## Usage
 
@@ -60,17 +61,28 @@ nox -s ui          # Launch the AnythingLLM desktop UI
 nox -s dify        # Launch the self-hosted Dify.ai workflow stack (Docker Compose; boots the LLM)
 nox -s boot_dify   # Start the Dify.ai stack + local LLM
 nox -s stop_dify   # Stop the Dify.ai Docker Compose stack
+nox -s e2e         # Final validation: browser E2E through Dify, headless (provisions Dify + Gemma 4)
+nox -s demo        # Same E2E tests, headed + slow-mo with narration (live demo; provisions Dify)
 ```
 
-Running bare `nox` runs the default sessions — `okf` then `unit` (both fast, no LLM), then `test`.
+Running bare `nox` runs the default sessions — `okf`, `unit`, `test`, then `e2e`
+(the browser end-to-end tests as the final validation stage). Both end-to-end tests
+run **through the Dify stack** (Dify → local Gemma 4); the `demo`/`e2e` sessions
+provision Dify and install Playwright + Chromium on first run, so they **require Docker**.
 
 The first `provision`/`boot_llm` downloads several GB (model weights + binaries)
 into `build/` (gitignored). Subsequent runs reuse the cache.
 
 ### Verifying the Workflows
 - **Erasmus+ Compliance checks**: The `run` session invokes the custom assistant logic on local files.
-- **Longevity Mentor BIA Ingestion & Advice**: The integration test suite (`nox -s test`) runs the complete end-to-end BIA pipeline (`tests/test_nutrition_advice_e2e.py`): retrieving health data, translating to openEHR, saving to the encrypted store, anonymizing, and querying the LLM for advice.
-- **Local Unit Tests**: `nox -s unit` runs isolated validation tests for the openEHR mapper, envelope crypto, SQLite storage database, and Dify integrations without needing the local LLM running.
+- **Longevity Mentor BIA — end-to-end demos**: Browser-driven E2E tests in [`tests/end-to-end/`](tests/end-to-end/) drive the full scenario (parse a real Google Health/Beurer export → encrypted openEHR → anonymized prompt → **through Dify → local Gemma 4** advice), plus a demo that greets the Dify Longevity Mentor chat app. The `demo`/`e2e` sessions provision the Dify stack themselves. They run headless as the final pipeline stage (`nox -s e2e`) and headed + narrated as a live demo (`nox -s demo`). Configure via explicit params after `--`, selectable per file or shortcut:
+  ```bash
+  nox -s demo -- dify                  # run only the Dify greeting demo
+  nox -s demo -- nutrition             # run only the Nutrition/openEHR demo
+  nox -s demo -- dify --debug          # run Dify demo starting paused (step-by-step with overlay controls)
+  nox -s demo -- --pause               # drop into the Playwright Inspector step-by-step
+  ```
+- **Local Unit Tests**: `nox -s unit` runs isolated validation tests for the openEHR mapper, envelope crypto, SQLite storage, the Takeout parser, and anonymization — without needing the local LLM running.
 
 ## Configuration
 

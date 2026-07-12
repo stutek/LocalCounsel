@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Longevity Mentor — Nutrition Advice Demo</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.5 system-ui, sans-serif; background: #0e1116; color: #e6edf3; }
+  header { padding: 20px 28px; border-bottom: 1px solid #232a33; }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 4px 0 0; color: #8b949e; }
+  .stages { display: flex; gap: 10px; padding: 18px 28px; flex-wrap: wrap; }
+  .stage { padding: 8px 14px; border-radius: 999px; background: #161b22; border: 1px solid #232a33;
+           color: #8b949e; font-weight: 600; font-size: 13px; transition: all .3s; }
+  .stage.active { background: #1f6feb22; border-color: #1f6feb; color: #58a6ff; box-shadow: 0 0 0 3px #1f6feb22; }
+  .stage.done { color: #3fb950; border-color: #238636; }
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 8px 28px 40px; }
+  .panel { background: #0d1117; border: 1px solid #232a33; border-radius: 12px; padding: 16px 18px; min-height: 90px; }
+  .panel h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: #8b949e; }
+  .panel.wide { grid-column: 1 / -1; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 4px 10px; border-bottom: 1px solid #1b2129; }
+  th { color: #8b949e; font-weight: 600; }
+  pre { white-space: pre-wrap; word-break: break-word; margin: 0; font: 12.5px/1.5 ui-monospace, monospace; color: #c9d1d9; }
+  #advice { font-size: 14px; }
+  #advice h3 { color: #58a6ff; }
+  .muted { color: #6e7681; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>🧬 Longevity Mentor — BIA Nutrition Advice</h1>
+    <p>Real body-composition data → encrypted openEHR → anonymized prompt → local Gemma. Fully on-device.</p>
+  </header>
+
+  <div class="stages" id="stages">
+    <div class="stage" data-stage="1">1 · Ingest</div>
+    <div class="stage" data-stage="2">2 · Encrypt openEHR</div>
+    <div class="stage" data-stage="3">3 · Anonymize</div>
+    <div class="stage" data-stage="4">4 · Ask Gemma</div>
+    <div class="stage" data-stage="5">5 · Advice</div>
+  </div>
+
+  <main>
+    <section class="panel wide"><h2>Body-composition readings</h2><div id="readings" class="muted">…</div></section>
+    <section class="panel"><h2>Storage</h2><div id="storage" class="muted">…</div></section>
+    <section class="panel"><h2>Model</h2><div id="model" class="muted">…</div></section>
+    <section class="panel wide"><h2>Anonymized prompt (leaves the machine)</h2><pre id="prompt" class="muted">…</pre></section>
+    <section class="panel wide"><h2>Nutrition advice</h2><div id="advice" class="muted">…</div></section>
+  </main>
+
+<script>
+  window.demo = {
+    stage(n) {
+      document.querySelectorAll('.stage').forEach(el => {
+        const s = +el.dataset.stage;
+        el.classList.toggle('active', s === n);
+        el.classList.toggle('done', s < n);
+      });
+    },
+    set(id, html) { const el = document.getElementById(id); el.innerHTML = html; el.classList.remove('muted'); },
+  };
+</script>
+</body>
+</html>
