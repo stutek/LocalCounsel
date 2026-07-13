@@ -121,12 +121,16 @@ DIFY_SHA256 = env("LC_DIFY_SHA256", _DIFY_SHA256_DEFAULT) or None
 # Server bind address                                                           #
 # --------------------------------------------------------------------------- #
 def _default_llm_host() -> str:
-    """Choose a secure bind address for llama-server.
+    """Choose the bind address for llama-server.
 
     Uses LC_LLM_HOST if explicitly configured. Otherwise:
-    - If Docker bridge interface (docker0) is active, bind to 0.0.0.0 so both
-      local host apps (127.0.0.1) and Dify containers (172.17.0.1) can reach it.
-    - Otherwise, bind strictly to loopback 127.0.0.1.
+    - If a Docker bridge (docker0) is active, bind 0.0.0.0 so BOTH host-loopback
+      clients (127.0.0.1) AND Dify containers (which reach the host via their
+      compose-network gateway, e.g. 172.18.0.1) can reach the model. A single
+      bind address can't cover both without also covering Wi-Fi/LAN — so external
+      exposure is instead closed at the firewall (see pipeline.firewall, applied
+      on boot / `nox -s secure_ports`), not by narrowing this bind.
+    - Otherwise (no Docker), bind strictly to loopback 127.0.0.1.
     """
     override = env("LC_LLM_HOST", "")
     if override:
