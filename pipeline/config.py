@@ -151,6 +151,7 @@ def _default_llm_host() -> str:
 
 HOST = _default_llm_host()
 PORT = int(env("LC_LLM_PORT", "8080"))
+CTX_SIZE = int(env("LC_LLM_CTX_SIZE", "32768"))
 
 
 def require_supported_platform() -> None:

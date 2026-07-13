@@ -12,7 +12,7 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .config import HOST, LOGS, MODEL_FILE, PID_FILE, PORT, require_supported_platform
+from .config import CTX_SIZE, HOST, LOGS, MODEL_FILE, PID_FILE, PORT, require_supported_platform
 from .provisioning import find_dify, find_server, provision
 from .util import link_latest, stamp
 
@@ -76,7 +76,7 @@ def boot_llm(log_stamp: str | None = None) -> None:
     env = {**os.environ, "LD_LIBRARY_PATH": str(server.parent)}
 
     proc = subprocess.Popen(
-        [str(server), "-m", str(MODEL_FILE), "--host", HOST, "--port", str(PORT), "-c", "4096", "-np", "1"],
+        [str(server), "-m", str(MODEL_FILE), "--host", HOST, "--port", str(PORT), "-c", str(CTX_SIZE), "-np", "1"],
         cwd=str(server.parent),
         env=env,
         stdout=logf,

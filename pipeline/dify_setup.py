@@ -40,6 +40,9 @@ APP_URL_FILE = BUILD / "dify" / "app_url.txt"
 
 
 def _get_llm_endpoint() -> str:
+    from pipeline.config import HOST, PORT
+    if HOST not in ("0.0.0.0", "127.0.0.1"):
+        return f"http://{HOST}:{PORT}/v1"
     import subprocess
 
     for cmd in (
@@ -191,6 +194,11 @@ def _ensure_provider(auth: tuple[str, str]) -> None:
                 },
             },
         )
+        import subprocess
+        subprocess.run(
+            ["sg", "docker", "-c", "docker exec docker-db_postgres-1 psql -U postgres -d dify -c \"UPDATE provider_models SET credential_id = (SELECT id FROM provider_model_credentials ORDER BY created_at DESC LIMIT 1) WHERE model_name = 'gemma';\""],
+            check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
     except Exception as exc:
         print(f"  Note: provider model registration returned: {exc}")
     return provider_id
@@ -280,6 +288,19 @@ for (const dir of dirs) {
             capture_output=True,
             check=False,
         )
+        # Also ensure Nginx does not serve JS chunks with immutable Cache-Control so patched bundles load immediately
+        nginx_patch = r"""
+import subprocess
+p = "/etc/nginx/conf.d/default.conf"
+c = open(p).read()
+if "/_next/static/chunks/" not in c:
+    old = "    location / {\n      proxy_pass http://web:3000;\n      include proxy.conf;\n    }"
+    new = "    location /_next/static/chunks/ {\n      proxy_pass http://web:3000;\n      include proxy.conf;\n      proxy_hide_header Cache-Control;\n      add_header Cache-Control \"no-cache, no-store, must-revalidate\" always;\n    }\n\n    location / {\n      proxy_pass http://web:3000;\n      include proxy.conf;\n    }"
+    c = c.replace(old, new)
+    subprocess.run(["sg", "docker", "-c", "docker exec -i docker-nginx-1 sh -c \"cat > /etc/nginx/conf.d/default.conf\""], input=c, text=True, check=False)
+    subprocess.run(["sg", "docker", "-c", "docker exec docker-nginx-1 nginx -s reload"], check=False)
+"""
+        subprocess.run(["python3", "-c", nginx_patch], capture_output=True, check=False)
     except Exception:
         pass
 
