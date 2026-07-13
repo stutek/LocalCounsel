@@ -24,8 +24,9 @@ def health_ok(host: str, port: int) -> bool:
     /health with 503 ("Loading model") until ready and 200 afterwards. Polling the
     TCP port alone races the model load, so we check /health instead.
     """
+    check_host = "127.0.0.1" if host == "0.0.0.0" else host
     try:
-        with urllib.request.urlopen(f"http://{host}:{port}/health", timeout=2) as resp:
+        with urllib.request.urlopen(f"http://{check_host}:{port}/health", timeout=2) as resp:
             return resp.status == 200
     except Exception:
         return False
@@ -218,3 +219,25 @@ def stop_dify() -> None:
     print("🛑 Stopping Dify Docker Compose stack ...")
     run_docker_compose(["down"], cwd=docker_dir)
     print("🧹 Dify resources cleaned up.")
+
+
+def stop_anythingllm() -> None:
+    """Stop running AnythingLLM UI processes."""
+    stopped = False
+    for pattern in ["AnythingLLM", "anythingllm"]:
+        res = subprocess.run(["pkill", "-f", pattern], capture_output=True, check=False)
+        if res.returncode == 0:
+            stopped = True
+    if stopped:
+        print("🛑 Stopped AnythingLLM desktop UI process.")
+    else:
+        print("AnythingLLM UI is not running.")
+
+
+def stop_all() -> None:
+    """Stop Dify stack, AnythingLLM UI, and local LLM server."""
+    print("🛑 Stopping all LocalCounsel services ...")
+    stop_dify()
+    stop_anythingllm()
+    stop_llm()
+    print("🧹 All processes stopped and memory cleaned up.")

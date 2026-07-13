@@ -124,9 +124,8 @@ def _default_llm_host() -> str:
     """Choose a secure bind address for llama-server.
 
     Uses LC_LLM_HOST if explicitly configured. Otherwise:
-    - If Docker bridge interface (docker0) is active, bind to its private bridge
-      gateway IP (e.g., 172.17.0.1) so Dify containers can reach the host model
-      without exposing port 8080 to physical LAN/Wi-Fi interfaces.
+    - If Docker bridge interface (docker0) is active, bind to 0.0.0.0 so both
+      local host apps (127.0.0.1) and Dify containers (172.17.0.1) can reach it.
     - Otherwise, bind strictly to loopback 127.0.0.1.
     """
     override = env("LC_LLM_HOST", "")
@@ -141,9 +140,7 @@ def _default_llm_host() -> str:
         for line in out.splitlines():
             line = line.strip()
             if line.startswith("inet "):
-                ip = line.split()[1].split("/")[0]
-                if ip:
-                    return ip
+                return "0.0.0.0"
     except Exception:
         pass
     return "127.0.0.1"

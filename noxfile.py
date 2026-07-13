@@ -16,8 +16,8 @@ Common sessions:
     nox -s stop_llm    # stop the server and its child processes
     nox -s ui          # launch the AnythingLLM desktop UI
     nox -s dify        # launch the Dify web stack via Docker Compose (boots local LLM first)
-    nox -s boot_dify   # start the Dify Docker Compose stack and local LLM
     nox -s stop_dify   # stop the Dify Docker Compose stack
+    nox -s stop_all    # stop both the Dify stack and the local LLM server
 
 The model is pluggable: override LC_MODEL_URL / LC_MODEL_NAME (and optionally
 LC_LLAMA_URL) to run a different GGUF — e.g. DeepSeek instead of Gemma — with no
@@ -49,6 +49,7 @@ from pipeline.server import boot_dify as pipeline_boot_dify
 from pipeline.server import boot_llm as pipeline_boot_llm
 from pipeline.server import stop_dify as pipeline_stop_dify
 from pipeline.server import stop_llm as pipeline_stop_llm
+from pipeline.server import stop_all as pipeline_stop_all
 from pipeline.util import link_latest, safe_remove_dir, stamp
 
 nox.options.sessions = ["okf", "unit", "test", "e2e"]
@@ -290,6 +291,12 @@ def boot_dify(session: nox.Session) -> None:
 def stop_dify(session: nox.Session) -> None:
     """Stop the Dify Docker Compose stack."""
     pipeline_stop_dify()
+
+
+@nox.session(python=False)
+def stop_all(session: nox.Session) -> None:
+    """Stop Dify stack, AnythingLLM UI, and local LLM server."""
+    pipeline_stop_all()
 
 
 @nox.session(python=False)
