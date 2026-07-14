@@ -142,15 +142,15 @@ def _login() -> tuple[str, str]:
         raise RuntimeError(f"Dify POST /login -> HTTP {exc.code}: {detail}") from exc
 
 
-def _ensure_provider(auth: tuple[str, str]) -> None:
+def _ensure_provider(auth: tuple[str, str]) -> str:
     print("⚙️  Dify: registering local Gemma 4 as OpenAI-API-compatible provider ...")
     provider_id = "langgenius/openai_api_compatible/openai_api_compatible"
     providers = _req("GET", "/workspaces/current/model-providers", auth=auth).get("data", [])
     installed = False
-    for p in providers:
-        p_name = p.get("provider", "")
-        if "openai_api_compatible" in p_name:
-            provider_id = p_name
+    for provider in providers:
+        provider_name = provider.get("provider", "")
+        if "openai_api_compatible" in provider_name:
+            provider_id = provider_name
             installed = True
             break
 
@@ -166,10 +166,10 @@ def _ensure_provider(auth: tuple[str, str]) -> None:
             for _ in range(20):
                 time.sleep(1)
                 providers = _req("GET", "/workspaces/current/model-providers", auth=auth).get("data", [])
-                for p in providers:
-                    p_name = p.get("provider", "")
-                    if "openai_api_compatible" in p_name:
-                        provider_id = p_name
+                for provider in providers:
+                    provider_name = provider.get("provider", "")
+                    if "openai_api_compatible" in provider_name:
+                        provider_id = provider_name
                         installed = True
                         break
                 if installed:
@@ -194,10 +194,19 @@ def _ensure_provider(auth: tuple[str, str]) -> None:
                 },
             },
         )
+        # Dify 1.15 doesn't always link the just-created credential to the model
+        # row via the API, leaving the model unusable. Point provider_models at
+        # the newest credential directly (best-effort DB fix-up).
         import subprocess
+
+        link_credential_sql = (
+            "UPDATE provider_models SET credential_id = "
+            "(SELECT id FROM provider_model_credentials ORDER BY created_at DESC LIMIT 1) "
+            "WHERE model_name = 'gemma';"
+        )
         subprocess.run(
-            ["sg", "docker", "-c", "docker exec docker-db_postgres-1 psql -U postgres -d dify -c \"UPDATE provider_models SET credential_id = (SELECT id FROM provider_model_credentials ORDER BY created_at DESC LIMIT 1) WHERE model_name = 'gemma';\""],
-            check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            ["sg", "docker", "-c", f'docker exec docker-db_postgres-1 psql -U postgres -d dify -c "{link_credential_sql}"'],
+            check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         )
     except Exception as exc:
         print(f"  Note: provider model registration returned: {exc}")
