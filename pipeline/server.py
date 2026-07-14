@@ -47,30 +47,6 @@ def tail(path: Path, n: int = 25) -> str:
         return "(no log)"
 
 
-def _enforce_llm_port_firewall() -> None:
-    """When bound to all interfaces, restrict the LLM port to loopback + Docker.
-
-    llama-server must bind 0.0.0.0 to serve both host-loopback clients and the
-    Dify containers, so we close the external exposure at the firewall instead.
-    Best-effort: warn loudly (never abort) if the allow-list can't be installed.
-    """
-    if HOST != "0.0.0.0":
-        return
-    from .firewall import ensure_llm_port_firewall, is_llm_port_firewalled
-
-    if is_llm_port_firewalled(PORT):
-        return
-    if ensure_llm_port_firewall(PORT):
-        print(f"🔒 Firewalled port {PORT}: loopback + Docker subnets only (blocked on Wi-Fi/LAN).")
-    else:
-        print(
-            f"⚠️  llama-server binds 0.0.0.0:{PORT} but the firewall allow-list is NOT active — "
-            f"port {PORT} may be reachable on Wi-Fi/LAN.\n"
-            f"    Harden it once with:  sudo nox -s secure_ports\n"
-            f"    (or set LC_LLM_HOST=127.0.0.1 to bind loopback only — Dify then can't reach the model)."
-        )
-
-
 def boot_llm(log_stamp: str | None = None) -> None:
     """Start llama-server (if not already up) and wait for it to bind the port.
 
@@ -79,7 +55,9 @@ def boot_llm(log_stamp: str | None = None) -> None:
     build/logs/ — tail it live with ``tail -f build/logs/llama-latest.log``.
     """
     require_supported_platform()
-    _enforce_llm_port_firewall()
+    # Publish the chosen bind address so separate-process clients (the assistant,
+    # the demos) target the same IP as the server instead of a hardcoded loopback.
+    os.environ.setdefault("LC_LLM_HOST", HOST)
     if health_ok(HOST, PORT):
         print(f"✓ LLM already serving on {HOST}:{PORT}")
         return

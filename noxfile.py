@@ -300,25 +300,6 @@ def stop_all(session: nox.Session) -> None:
 
 
 @nox.session(python=False)
-def secure_ports(session: nox.Session) -> None:
-    """Install the host firewall allow-list restricting the LLM port to loopback + Docker.
-
-    llama-server binds 0.0.0.0 so both host apps and Dify containers can reach it;
-    this closes the port on Wi-Fi/LAN. Needs root — run with sudo if it can't apply.
-    """
-    from pipeline.config import PORT
-    from pipeline.firewall import ensure_llm_port_firewall
-
-    if ensure_llm_port_firewall(PORT):
-        print(f"🔒 Firewalled port {PORT}: loopback + Docker subnets only (blocked on Wi-Fi/LAN).")
-    else:
-        session.error(
-            f"Could not install the firewall allow-list for port {PORT} — need root.\n"
-            f"    Re-run with: sudo $(command -v nox) -s secure_ports"
-        )
-
-
-@nox.session(python=False)
 def push_github(session: nox.Session) -> None:
     """Create a private GitHub repository and push the code there."""
     # 1. Check if gh CLI is installed

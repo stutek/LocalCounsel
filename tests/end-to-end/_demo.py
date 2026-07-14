@@ -16,12 +16,15 @@ The model is called over the local OpenAI-compatible endpoint with stdlib
 from __future__ import annotations
 
 import json
+import os
 import urllib.request
 from pathlib import Path
 from typing import Any
 
 DEMO_PAGE = Path(__file__).parent / "demo_page.html"
-LLM_BASE = "http://127.0.0.1:8080/v1"
+# Follow the address llama-server actually bound to (boot_llm publishes it as
+# LC_LLM_HOST); falls back to loopback for a standalone run.
+LLM_BASE = f"http://{os.getenv('LC_LLM_HOST', '127.0.0.1')}:8080/v1"
 
 # Injected once per page: overlay markup, control state, and the tick loop.
 _INSTALL_JS = r"""

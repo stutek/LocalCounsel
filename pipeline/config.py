@@ -124,12 +124,10 @@ def _default_llm_host() -> str:
     """Choose the bind address for llama-server.
 
     Uses LC_LLM_HOST if explicitly configured. Otherwise:
-    - If a Docker bridge (docker0) is active, bind 0.0.0.0 so BOTH host-loopback
-      clients (127.0.0.1) AND Dify containers (which reach the host via their
-      compose-network gateway, e.g. 172.18.0.1) can reach the model. A single
-      bind address can't cover both without also covering Wi-Fi/LAN — so external
-      exposure is instead closed at the firewall (see pipeline.firewall, applied
-      on boot / `nox -s secure_ports`), not by narrowing this bind.
+    - If the Docker bridge (docker0) is up, bind to its gateway IP (e.g.
+      172.17.0.1): reachable by the Dify containers and by host processes, but
+      NOT exposed on physical Wi-Fi/LAN/mobile interfaces. boot_llm publishes the
+      chosen address as LC_LLM_HOST so the assistant and demos target the same IP.
     - Otherwise (no Docker), bind strictly to loopback 127.0.0.1.
     """
     override = env("LC_LLM_HOST", "")
@@ -144,7 +142,9 @@ def _default_llm_host() -> str:
         for line in out.splitlines():
             line = line.strip()
             if line.startswith("inet "):
-                return "0.0.0.0"
+                ip = line.split()[1].split("/")[0]
+                if ip:
+                    return ip
     except Exception:
         pass
     return "127.0.0.1"
