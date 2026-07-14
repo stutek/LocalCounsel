@@ -165,5 +165,9 @@ def provision() -> None:
     download(MODEL_URL, MODEL_FILE, sha256=MODEL_SHA256)
     download(LLAMA_URL, LLAMA_TAR, sha256=LLAMA_SHA256)
     extract_llama()
-    download(DIFY_URL, DIFY_TAR, sha256=DIFY_SHA256, tofu=True)
+    # Dify ships as a version-tagged GitHub source archive with a pinned SHA-256
+    # (config._DIFY_SHA256_DEFAULT). Treat it as a real pin — GitHub can regenerate
+    # tag archives, so a content-hash mismatch must fail loudly. Trust-on-first-use
+    # is only a fallback for a custom LC_DIFY_URL that has no known hash.
+    download(DIFY_URL, DIFY_TAR, sha256=DIFY_SHA256, tofu=DIFY_SHA256 is None)
     extract_dify()
