@@ -40,10 +40,14 @@ def composition_uid(source_id: str) -> str:
     return str(uuid.uuid5(UID_NAMESPACE, source_id))
 
 
-def _element(archetype: str, name: str, magnitude: float, units: str) -> dict[str, Any]:
+def _element(archetype: str, name: str, magnitude: float, units: str, time: str) -> dict[str, Any]:
     return {
         "archetype_node_id": archetype,
         "name": name,
+        # openEHR OBSERVATION event time — when THIS value was measured. Recorded
+        # per element so each observation is self-contained rather than relying on
+        # the composition context. ISO 8601, matching openEHR DV_DATE_TIME.
+        "time": time,
         "value": {"magnitude": magnitude, "units": units},
     }
 
@@ -86,7 +90,7 @@ def bia_to_composition(
         "source_id": source_id,
         "composer": {"subject_id": subject_id, "vendor": vendor},
         "context": {"start_time": effective_time},
-        "content": [_element(a, n, v, u) for a, n, v, u in specs if v is not None],
+        "content": [_element(a, n, v, u, effective_time) for a, n, v, u in specs if v is not None],
     }
 
 
