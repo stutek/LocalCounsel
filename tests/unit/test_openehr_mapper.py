@@ -12,10 +12,11 @@ from local_counsel.openehr.mapper import (
 )
 
 FIXED_END = datetime(2026, 7, 8, tzinfo=timezone.utc)
+TEST_VENDOR = "test-bia-scale"
 
 
 def test_composition_has_uid_and_expected_archetypes():
-    comp = bia_to_composition(generate_bia_series(1, end_date=FIXED_END)[0])
+    comp = bia_to_composition(generate_bia_series(1, end_date=FIXED_END)[0], vendor=TEST_VENDOR)
     assert comp["uid"]
     nodes = {el["archetype_node_id"] for el in comp["content"]}
     assert "openEHR-EHR-OBSERVATION.body_weight.v2" in nodes
@@ -25,14 +26,14 @@ def test_composition_has_uid_and_expected_archetypes():
 
 def test_uid_is_deterministic_and_time_specific():
     series = generate_bia_series(2, end_date=FIXED_END)
-    a = bia_to_composition(series[0])["uid"]
-    again = bia_to_composition(series[0])["uid"]
-    other = bia_to_composition(series[1])["uid"]
+    a = bia_to_composition(series[0], vendor=TEST_VENDOR)["uid"]
+    again = bia_to_composition(series[0], vendor=TEST_VENDOR)["uid"]
+    other = bia_to_composition(series[1], vendor=TEST_VENDOR)["uid"]
     assert a == again          # same reading -> same UID (idempotency key)
     assert a != other          # different reading -> different UID
-    assert a == composition_uid(bia_to_composition(series[0])["source_id"])
+    assert a == composition_uid(bia_to_composition(series[0], vendor=TEST_VENDOR)["source_id"])
 
 
 def test_roundtrips_back_to_measurement():
     for m in generate_bia_series(12, end_date=FIXED_END):
-        assert composition_to_measurement(bia_to_composition(m)) == m
+        assert composition_to_measurement(bia_to_composition(m, vendor=TEST_VENDOR)) == m

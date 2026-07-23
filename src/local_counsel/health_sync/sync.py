@@ -61,7 +61,7 @@ def trigger_bia_sync(
         connector = factory(api_key)
 
         for measurement in connector.fetch_bia_measurements():
-            store.put_composition(bia_to_composition(measurement))
+            store.put_composition(bia_to_composition(measurement, vendor=connector.vendor))
     except Exception:
         store.close()
         raise

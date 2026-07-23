@@ -36,6 +36,10 @@ DATA_TYPE_BONE_MASS = "com.google.body.bone.mass"
 DATA_TYPE_BMR = "com.google.body.basal_metabolic_rate"
 DATA_TYPE_VISCERAL_FAT = "com.google.body.visceral_fat.rating"
 
+# Provenance identifier exposed by this connector. A live connector must expose
+# the actual device/source-system identifier it receives from its API or export.
+MOCK_GOOGLE_HEALTH_VENDOR = "mock-google-health"
+
 # A plausible BIA scale app as the origin data source.
 _ORIGIN_DATA_SOURCE = (
     "raw:com.google.weight:com.example.biascale:BIA-Smart-Scale"
@@ -167,6 +171,7 @@ class MockGoogleHealthConnector:
     # decrypted from the local store at the retrieval trigger (see
     # ``health_sync.sync``); the mock only records it to model that dependency.
     api_key: str | None = None
+    vendor: str = MOCK_GOOGLE_HEALTH_VENDOR
     _series: list[BiaMeasurement] = field(default_factory=list, init=False, repr=False)
 
     def _ensure_series(self) -> list[BiaMeasurement]:

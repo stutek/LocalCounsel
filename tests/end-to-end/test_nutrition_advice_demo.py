@@ -68,8 +68,8 @@ def test_nutrition_advice_demo(page: Page, request, tmp_path) -> None:
             "Mapping to openEHR compositions and storing them AES-256-GCM encrypted (idempotent).")
     with EncryptedOpenEhrStore.open("demo-user", PASSPHRASE, base_dir=str(tmp_path)) as store:
         for m in series:
-            store.put_composition(bia_to_composition(m))
-        store.put_composition(bia_to_composition(series[-1]))  # re-put proves idempotency
+            store.put_composition(bia_to_composition(m, vendor="mock-google-health"))
+        store.put_composition(bia_to_composition(series[-1], vendor="mock-google-health"))  # re-put proves idempotency
         count = store.count()
         db_path = store.path
         restored = sorted(

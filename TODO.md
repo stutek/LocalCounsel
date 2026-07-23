@@ -38,6 +38,14 @@ important robustness/fidelity · **P3** = nice-to-have / polish.
   the `meta` table (salt, KDF params, wrapped DEK), and record **count** are stored
   in clear. Content is safe, but a thief learns *how many* records exist and *when*
   rows were written. Document as accepted, or encrypt/pad if the threat model needs it.
+- [ ] **(P1) GDPR discussion: do deterministic UUIDv5 composition IDs constitute personal data?**
+  Is a UUID itself non-personal unless its timestamp-derived input is personal data,
+  or does deterministic linkability/re-identification make it personal data in this
+  context? Record the conclusion and threat model.
+- [ ] **(P1) GDPR discussion: is encrypting the composition payload sufficient?**
+  Confirm exactly which payload fields are AES-256-GCM encrypted and which metadata
+  remains clear, then assess whether the resulting protection is adequate for the
+  applicable GDPR and health-data threat model.
 - [ ] **(P3) GCM nonces are random 96-bit per record (birthday bound ~2³² writes).**
   Fine at personal scale; revisit (deterministic/counter nonce or per-record subkey)
   if write volume ever grows large.

@@ -20,6 +20,7 @@ from local_counsel.openehr import crypto
 
 GOOD_PASS = "correct-horse-battery-staple"
 FIXED_END = datetime(2026, 7, 8, tzinfo=timezone.utc)
+TEST_VENDOR = "test-bia-scale"
 
 
 @pytest.fixture(autouse=True)
@@ -32,7 +33,7 @@ def _open(tmp_path, user="alice", passphrase=GOOD_PASS):
 
 
 def test_put_get_roundtrip(tmp_path):
-    comp = bia_to_composition(generate_bia_series(1, end_date=FIXED_END)[0])
+    comp = bia_to_composition(generate_bia_series(1, end_date=FIXED_END)[0], vendor=TEST_VENDOR)
     with _open(tmp_path) as store:
         uid = store.put_composition(comp)
         assert store.get_composition(uid) == comp
@@ -41,7 +42,7 @@ def test_put_get_roundtrip(tmp_path):
 
 def test_put_is_idempotent_on_uid(tmp_path):
     m = generate_bia_series(1, end_date=FIXED_END)[0]
-    comp = bia_to_composition(m)
+    comp = bia_to_composition(m, vendor=TEST_VENDOR)
     with _open(tmp_path) as store:
         store.put_composition(comp)
         store.put_composition(comp)  # same deterministic UID
@@ -49,7 +50,7 @@ def test_put_is_idempotent_on_uid(tmp_path):
 
 
 def test_persists_across_reopen_with_same_passphrase(tmp_path):
-    comps = [bia_to_composition(m) for m in generate_bia_series(12, end_date=FIXED_END)]
+    comps = [bia_to_composition(m, vendor=TEST_VENDOR) for m in generate_bia_series(12, end_date=FIXED_END)]
     with _open(tmp_path) as store:
         for c in comps:
             store.put_composition(c)
@@ -61,7 +62,7 @@ def test_persists_across_reopen_with_same_passphrase(tmp_path):
 
 def test_wrong_passphrase_is_rejected_on_reopen(tmp_path):
     with _open(tmp_path) as store:
-        store.put_composition(bia_to_composition(generate_bia_series(1)[0]))
+        store.put_composition(bia_to_composition(generate_bia_series(1)[0], vendor=TEST_VENDOR))
     with pytest.raises(InvalidPassphrase):
         _open(tmp_path, passphrase="not-the-passphrase-at-all")
 
@@ -70,7 +71,7 @@ def test_stolen_file_has_no_plaintext_medical_data(tmp_path):
     """The clinical values must not appear anywhere in the raw DB bytes."""
     m = generate_bia_series(1, end_date=FIXED_END)[0]
     with _open(tmp_path) as store:
-        store.put_composition(bia_to_composition(m))
+        store.put_composition(bia_to_composition(m, vendor=TEST_VENDOR))
         db_file = store.path
 
     raw = db_file.read_bytes()
@@ -84,7 +85,7 @@ def test_stolen_file_has_no_plaintext_medical_data(tmp_path):
 def test_each_user_gets_a_separate_database_file(tmp_path):
     with _open(tmp_path, user="alice") as a, _open(tmp_path, user="bob") as b:
         assert a.path != b.path
-        a.put_composition(bia_to_composition(generate_bia_series(1)[0]))
+        a.put_composition(bia_to_composition(generate_bia_series(1)[0], vendor=TEST_VENDOR))
         assert a.count() == 1
         assert b.count() == 0  # isolated
 
@@ -95,7 +96,7 @@ def test_short_passphrase_is_refused_on_create(tmp_path):
 
 
 def test_passphrase_rotation_keeps_data_and_changes_key(tmp_path):
-    comp = bia_to_composition(generate_bia_series(1, end_date=FIXED_END)[0])
+    comp = bia_to_composition(generate_bia_series(1, end_date=FIXED_END)[0], vendor=TEST_VENDOR)
     with _open(tmp_path) as store:
         uid = store.put_composition(comp)
         store.rotate_passphrase(GOOD_PASS, "a-brand-new-strong-passphrase")
